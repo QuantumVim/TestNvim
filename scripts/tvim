@@ -1,0 +1,176 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+
+init_file="init.lua"
+persisting=false
+testing=false
+test_file="minimal_init.lua"
+appname="tvim"
+clear_instance=false
+
+print_usage() {
+    printf "Run a neovim instance with the specified configuration. The Neovim XDG directories are set to temporary directories which are persisted between runs\n"
+    printf "unless the -p flag is set. In this case the default Neovim XDG directories appended with the appname are used.\n"
+    printf "\nPlenary and structlog are cloned into the packpath if they don't exist yet and will always be in the runtime path.\n"
+    printf "\nUsage: %s [-a appname] [-i init_file] [--testing] [-t test_file] [-x test_arg] [-c] [-p]\n" "$0"
+    printf "\nOptions:\n"
+    printf "  -a, --appname APPNAME       Specify the appname to use. Default is 'tvim'. (Optional)\n"
+    printf "  -i, --init-file FILENAME    Specify the init file to use. Default is 'init.lua'. (Optional)\n"
+    printf "  --testing                   Run tests in headless mode. This enables the -t and -x options. (Optional)\n"
+    printf "  -t, --test-file FILENAME    Specify the test file to use. Only valid when --testing is set. Default is 'minimal_init.lua'. (Optional)\n"
+    printf "  -x, --test-arg ARG          Specify an argument for the plenary busted lua call. Only valid when --testing is set. (Optional)\n"
+    printf "  -c, --clear                 Force the script start with a fresh instance of neovim. This will remove the reference to the last /tmp folder\n"
+    printf "                              or removes the persisted folders when -p is set. Consider setting the appname explicitely when you used a different appname before (Optional)\n"
+    printf "  -p, --persist               Use default Neovim's standard user directories instead of temporary directories. (Optional)\n"
+    printf "  -h, --help                  Show this help message and exit.\n"
+}
+
+while (( "$#" )); do
+    case "$1" in
+        -a|--appname)
+            if [ -n "$2" ] && [ "${2:0:1}" != "-" ]; then
+                appname=$2
+                shift 2
+            else
+                echo "Error: Argument for $1 is missing" >&2
+                exit 1
+            fi
+            ;;
+        -i|--init-file)
+            if [ -n "$2" ] && [ "${2:0:1}" != "-" ]; then
+                init_file=$2
+                shift 2
+            else
+                echo "Error: Argument for $1 is missing" >&2
+                exit 1
+            fi
+            ;;
+        --testing)
+            testing=true
+            shift
+            ;;
+        -t|--test-file)
+            if [ "$testing" = true ]; then
+                if [ -n "$2" ] && [ "${2:0:1}" != "-" ]; then
+                    test_file=$2
+                    shift 2
+                else
+                    echo "Error: Argument for $1 is missing" >&2
+                    exit 1
+                fi
+            else
+                echo "Error: $1 is only valid when --testing is set" >&2
+                exit 1
+            fi
+            ;;
+        -x|--test-arg)
+            if [ "$testing" = true ]; then
+                if [ -n "$2" ] && [ "${2:0:1}" != "-" ]; then
+                    test_arg=$2
+                    shift 2
+                else
+                    echo "Error: Argument for $1 is missing" >&2
+                    exit 1
+                fi
+            else
+                echo "Error: $1 is only valid when --testing is set" >&2
+                exit 1
+            fi
+            ;;
+        -c|--clear)
+            clear_instance=true
+            shift
+            ;;
+        -p|--persist)
+            persisting=true
+            shift
+            ;;
+        -h|--help)
+            print_usage
+            exit 0
+            ;;
+        *)
+            PARAMS="$PARAMS $1"
+            shift
+            ;;
+    esac
+done
+
+if [ "$clear_instance" = true ]; then
+    if [ -f /tmp/testnvim/vars.sh ]; then
+        rm -f /tmp/testnvim/vars.sh
+    fi
+    if [ "$persisting" = true ]; then
+        rm -rf "$HOME/.local/state/$appname"
+        rm -rf "$HOME/.local/share/$appname"
+        rm -rf "$HOME/.cache/$appname"
+    fi
+fi
+
+# if not persisting
+if [ "$persisting" = false ]; then
+    if [ -f /tmp/testnvim/vars.sh ]; then
+        source /tmp/testnvim/vars.sh
+    else
+        TESTNVIM_CACHE_DIR="$(mktemp -d)"
+        TESTNVIM_STATE_DIR="$(mktemp -d)"
+        TESTNVIM_DATA_DIR="$(mktemp -d)"
+
+        mkdir -p /tmp/testnvim
+        echo "export TESTNVIM_CACHE_DIR=$TESTNVIM_CACHE_DIR" > /tmp/testnvim/vars.sh
+        echo "export TESTNVIM_STATE_DIR=$TESTNVIM_STATE_DIR" >> /tmp/testnvim/vars.sh
+        echo "export TESTNVIM_DATA_DIR=$TESTNVIM_DATA_DIR" >> /tmp/testnvim/vars.sh
+
+    fi
+fi
+
+export TESTNVIM_CONFIG_DIR="${TESTNVIM_CONFIG_DIR:-"$HOME/.config"}"
+export XDG_STATE_HOME="${TESTNVIM_STATE_DIR:-"$HOME/.local/state"}"
+export XDG_CONFIG_HOME="${TESTNVIM_CONFIG_DIR:-"$HOME/.config"}"
+export XDG_DATA_HOME="${TESTNVIM_DATA_DIR:-"$HOME/.local/share"}"
+export XDG_CACHE_HOME="${TESTNVIM_CACHE_DIR:-"$HOME/.cache"}"
+export NVIM_APPNAME="$appname"
+
+declare -xr TESTNVIM_CONFIG_DIR XDG_STATE_HOME XDG_CONFIG_HOME XDG_DATA_HOME XDG_CACHE_HOME NVIM_APPNAME
+
+echo "appname: $NVIM_APPNAME"
+echo "cache dir: $XDG_CACHE_HOME"
+echo "state dir: $XDG_STATE_HOME"
+echo "data dir: $XDG_DATA_HOME"
+
+# clone the plugins when they don't exist yet
+mkdir -p "${XDG_STATE_HOME}/${NVIM_APPNAME}/after/pack/lazy/opt"
+if [ ! -d "${XDG_STATE_HOME}/${NVIM_APPNAME}/after/pack/lazy/opt/plenary" ]; then
+    git clone https://github.com/nvim-lua/plenary.nvim.git "${XDG_STATE_HOME}/${NVIM_APPNAME}/after/pack/lazy/opt/plenary"
+fi
+if [ ! -d "${XDG_STATE_HOME}/${NVIM_APPNAME}/after/pack/lazy/opt/structlog" ]; then
+    git clone https://github.com/Tastyep/structlog.nvim.git "${XDG_STATE_HOME}/${NVIM_APPNAME}/after/pack/lazy/opt/structlog"
+fi
+
+function test_nvim() {
+    nvim -u "${XDG_CONFIG_HOME}/${NVIM_APPNAME}/tests/minimal_init.lua" \
+        --cmd "set runtimepath+=${XDG_STATE_HOME}/${NVIM_APPNAME}/after/pack/lazy/opt/plenary" \
+        --cmd "set runtimepath+=${XDG_STATE_HOME}/${NVIM_APPNAME}/after/pack/lazy/opt/structlog" \
+        "$@"
+}
+
+function run_nvim() {
+    nvim -u "${XDG_CONFIG_HOME}/${NVIM_APPNAME}/${init_file}" \
+        --cmd "set runtimepath+=${XDG_STATE_HOME}/${NVIM_APPNAME}/after/pack/lazy/opt/plenary" \
+        --cmd "set runtimepath+=${XDG_STATE_HOME}/${NVIM_APPNAME}/after/pack/lazy/opt/structlog"
+}
+
+function setup() {
+    if [ "$testing" = true ]; then
+        if [ -n "$test_arg" ]; then
+            test_nvim --headless -c "lua require('plenary.busted').run('$test_arg')"
+        else
+            test_nvim --headless -c "PlenaryBustedDirectory tests/specs { minimal_init = './tests/$test_file' }"
+        fi
+    else
+        run_nvim
+    fi
+}
+
+setup "$@"
