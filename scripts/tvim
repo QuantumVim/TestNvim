@@ -16,13 +16,13 @@ print_usage() {
     printf "\nUsage: %s [-a appname] [-i init_file] [--testing] [-t test_file] [-x test_arg] [-c] [-p]\n" "$0"
     printf "\nOptions:\n"
     printf "  -a, --appname APPNAME       Specify the appname to use. Default is 'tvim'. (Optional)\n"
-    printf "  -i, --init-file FILENAME    Specify the init file to use. Default is 'init.lua'. (Optional)\n"
+    printf "  -I, --init-file FILENAME    Specify the init file to use. Default is 'init.lua'. (Optional)\n"
     printf "  --testing                   Run tests in headless mode. This enables the -t and -x options. (Optional)\n"
     printf "  -t, --test-file FILENAME    Specify the test file to use. Only valid when --testing is set. Default is 'minimal_init.lua'. (Optional)\n"
     printf "  -x, --test-arg ARG          Specify an argument for the plenary busted lua call. Only valid when --testing is set. (Optional)\n"
-    printf "  -c, --clear                 Force the script start with a fresh instance of neovim. This will remove the reference to the last /tmp folder\n"
-    printf "                              or removes the persisted folders when -p is set. Consider setting the appname explicitely when you used a different appname before (Optional)\n"
-    printf "  -p, --persist               Use default Neovim's standard user directories instead of temporary directories. (Optional)\n"
+    printf "  -r, --remove                Force the script start with a fresh instance of neovim. This will remove the reference to the last /tmp folder\n"
+    printf "                              or removes the persisted folders when --persist is set. Consider setting the appname explicitely when you used a different appname before (Optional)\n"
+    printf "  --persist                   Use default Neovim's standard user directories instead of temporary directories. (Optional)\n"
     printf "  -h, --help                  Show this help message and exit.\n"
 }
 
@@ -37,7 +37,7 @@ while (( "$#" )); do
                 exit 1
             fi
             ;;
-        -i|--init-file)
+        -I|--init-file)
             if [ -n "$2" ] && [ "${2:0:1}" != "-" ]; then
                 init_file=$2
                 shift 2
@@ -78,11 +78,11 @@ while (( "$#" )); do
                 exit 1
             fi
             ;;
-        -c|--clear)
+        -r|--remove)
             clear_instance=true
             shift
             ;;
-        -p|--persist)
+        --persist)
             persisting=true
             shift
             ;;
@@ -139,6 +139,10 @@ echo "cache dir: $XDG_CACHE_HOME"
 echo "state dir: $XDG_STATE_HOME"
 echo "data dir: $XDG_DATA_HOME"
 
+if [ -n "$PARAMS" ]; then
+    echo "Neovim parameters: $PARAMS"
+fi
+
 # clone the plugins when they don't exist yet
 mkdir -p "${XDG_STATE_HOME}/${NVIM_APPNAME}/after/pack/lazy/opt"
 if [ ! -d "${XDG_STATE_HOME}/${NVIM_APPNAME}/after/pack/lazy/opt/plenary" ]; then
@@ -149,16 +153,19 @@ if [ ! -d "${XDG_STATE_HOME}/${NVIM_APPNAME}/after/pack/lazy/opt/structlog" ]; t
 fi
 
 function test_nvim() {
+    # shellcheck disable=SC2086
     nvim -u "${XDG_CONFIG_HOME}/${NVIM_APPNAME}/tests/minimal_init.lua" \
         --cmd "set runtimepath+=${XDG_STATE_HOME}/${NVIM_APPNAME}/after/pack/lazy/opt/plenary" \
         --cmd "set runtimepath+=${XDG_STATE_HOME}/${NVIM_APPNAME}/after/pack/lazy/opt/structlog" \
-        "$@"
+        $PARAMS
 }
 
 function run_nvim() {
+    # shellcheck disable=SC2086
     nvim -u "${XDG_CONFIG_HOME}/${NVIM_APPNAME}/${init_file}" \
         --cmd "set runtimepath+=${XDG_STATE_HOME}/${NVIM_APPNAME}/after/pack/lazy/opt/plenary" \
-        --cmd "set runtimepath+=${XDG_STATE_HOME}/${NVIM_APPNAME}/after/pack/lazy/opt/structlog"
+        --cmd "set runtimepath+=${XDG_STATE_HOME}/${NVIM_APPNAME}/after/pack/lazy/opt/structlog" \
+        $PARAMS
 }
 
 function setup() {
@@ -173,4 +180,4 @@ function setup() {
     fi
 }
 
-setup "$@"
+setup
