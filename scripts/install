@@ -2,6 +2,7 @@
 set -eo pipefail
 
 declare USE_SSH=0
+declare APP_NAME_SUPPORTED=1
 #Set branch to master unless specified by the user
 declare -x TV_BRANCH="${TV_BRANCH:-"main"}"
 declare -xr TV_REMOTE="${TV_REMOTE:-quantumfate/TestVim.git}"
@@ -9,12 +10,12 @@ declare -xr XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-"$HOME/.config"}"
 declare NVIM_APPNAME="tvim"
 
 function check_neovim_min_version() {
-    local verify_version_cmd='if !has("nvim-0.8") | cquit | else | quit | endif'
+    local verify_version_cmd='if !has("nvim-0.9") | cquit | else | quit | endif'
 
     # exit with an error if min_version not found
     if ! nvim --headless -u NONE -c "$verify_version_cmd"; then
-        echo "[ERROR]: TestVim requires at least Neovim v0.8 or higher"
-        exit 1
+        echo "[WARN]: Neovim v0.9 not satisfied. Appname defaults to 'nvim'."
+        APP_NAME_SUPPORTED=0
     fi
 }
 
@@ -89,6 +90,20 @@ function __backup_dir() {
 }
 
 function clone_tvim() {
+
+    # Check if there's an existing Neovim configuration
+    if [ -d "$XDG_CONFIG_HOME/$NVIM_APPNAME" ]; then
+        echo "An existing Neovim configuration was found in $XDG_CONFIG_HOME/$NVIM_APPNAME."
+        echo "Would you like to backup and replace it? (y/n)"
+        read -r answer
+
+        if [[ "$answer" != "y" ]]; then
+            echo "Aborting installation."
+            exit 1
+        else
+            __backup_dir "$XDG_CONFIG_HOME/$NVIM_APPNAME"
+        fi
+    fi
     msg "Cloning TestVim configuration"
 
     if [ "$USE_SSH" -eq 0 ]; then
@@ -116,7 +131,13 @@ function setup_tvim() {
 
     if [ -d "$HOME/.local/bin" ]; then
         ln -s "$XDG_CONFIG_HOME/$NVIM_APPNAME/scripts/tvim" "$HOME/.local/bin/tvim"
-        tvim --headless -c 'quitall'
+        # if appname supported
+        if [ "$APP_NAME_SUPPORTED" -eq 1 ]; then
+            tvim --headless -c 'quitall'
+        else
+            tvim --appname 'nvim' --headless -c 'quitall'
+        fi
+
     else
         msg "Manually link the tvim script to your path"
     fi
