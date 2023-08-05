@@ -13,7 +13,7 @@ TestVim is a minimal neovim configuration for plugin testing. It behaves like an
 ## Requirements
 
 - any UNIX like operating system
-- [NVIM 0.9.0](https://github.com/neovim/neovim/releases/tag/v0.9.0) *See [I don't have NVIM v.0.9](#I-don't-have-NVIM-v.0.9) for earlier versions*
+- [NVIM 0.9.0](https://github.com/neovim/neovim/releases/tag/v0.9.0) *See [I don't have NVIM v.0.9](#i-dont-have-nvim-v09) for earlier versions*
 
 ## Install
 
