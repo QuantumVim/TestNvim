@@ -29,6 +29,55 @@ require("lazy").setup(plugins, {
 	root = pack_path,
 })
 
+local log = require("structlog")
+
+log.configure({
+	tvim = {
+		pipelines = {
+			{
+				level = log.level.INFO,
+				processors = {
+					log.processors.StackWriter({ "line", "file" }, { max_parents = 0, stack_level = 0 }),
+					log.processors.Timestamper("%H:%M:%S"),
+				},
+				formatter = log.formatters.FormatColorizer( --
+					"%s [%s] %s: %-30s",
+					{ "timestamp", "level", "logger_name", "msg" },
+					{ level = log.formatters.FormatColorizer.color_level() }
+				),
+				sink = log.sinks.Console(),
+			},
+			{
+				level = log.level.DEBUG,
+				processors = {
+					log.processors.StackWriter({ "line", "file" }, { max_parents = 0, stack_level = 1 }),
+					log.processors.Timestamper("%H:%M:%S"),
+				},
+				formatter = log.formatters.Format( --
+					"%s [%s] %s: %-30s",
+					{ "timestamp", "level", "logger_name", "msg" }
+				),
+				sink = log.sinks.File(os.getenv("TESTNVIM_LOG_DIR") .. "/debug.log"),
+			},
+			{
+				level = log.level.TRACE,
+				processors = {
+					log.processors.StackWriter({ "line", "file" }, { max_parents = 3, stack_level = 5 }),
+					log.processors.Timestamper("%H:%M:%S"),
+				},
+				formatter = log.formatters.Format( --
+					"%s [%s] %s: %-30s",
+					{ "timestamp", "level", "logger_name", "msg" }
+				),
+				sink = log.sinks.File(os.getenv("TESTNVIM_LOG_DIR") .. "/trace.log"),
+			},
+		},
+	},
+})
+
+local logger = log.get_logger("tvim")
+logger:info("Tvim initialized")
+
 -- add anything else here
 vim.opt.termguicolors = true
 -- do not remove the colorscheme!

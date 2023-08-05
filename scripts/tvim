@@ -134,6 +134,7 @@ if [ "$persisting" = false ]; then
     fi
 fi
 
+export TESTNVIM_LOG_DIR="${TESTNVIM_LOG_DIR:-"$HOME/.local/log/$appname"}"
 export TESTNVIM_CONFIG_DIR="${TESTNVIM_CONFIG_DIR:-"$HOME/.config"}"
 export XDG_STATE_HOME="${TESTNVIM_STATE_DIR:-"$HOME/.local/state"}"
 export XDG_CONFIG_HOME="${TESTNVIM_CONFIG_DIR:-"$HOME/.config"}"
@@ -141,7 +142,9 @@ export XDG_DATA_HOME="${TESTNVIM_DATA_DIR:-"$HOME/.local/share"}"
 export XDG_CACHE_HOME="${TESTNVIM_CACHE_DIR:-"$HOME/.cache"}"
 export NVIM_APPNAME="$appname"
 
-declare -xr TESTNVIM_CONFIG_DIR XDG_STATE_HOME XDG_CONFIG_HOME XDG_DATA_HOME XDG_CACHE_HOME NVIM_APPNAME
+declare -xr TESTNVIM_LOG_FILE TESTNVIM_CONFIG_DIR XDG_STATE_HOME XDG_CONFIG_HOME XDG_DATA_HOME XDG_CACHE_HOME NVIM_APPNAME
+
+mkdir -p "$TESTNVIM_LOG_DIR"
 
 function freeze_config() {
     # Check if there's any existing directory in the real XDG directories
@@ -172,6 +175,8 @@ echo "appname: $NVIM_APPNAME"
 echo "cache dir: $XDG_CACHE_HOME"
 echo "state dir: $XDG_STATE_HOME"
 echo "data dir: $XDG_DATA_HOME"
+echo "config dir: $XDG_CONFIG_HOME"
+echo "log dir: $TESTNVIM_LOG_DIR"
 
 if [ -n "$PARAMS" ]; then
     echo "Neovim parameters: $PARAMS"

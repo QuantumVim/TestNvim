@@ -75,10 +75,38 @@ tvim --testing
 
 ### I don't want to use temp directories
 
-Sometimes it might be inconvenient to have the files in a volatile directory. In that case you can use a persisted session by using neovim's [standard paths](https://neovim.io/doc/user/starting.html#standard-path). Note: Exiting directories won't be touched.
+Sometimes it might be inconvenient to have the files in a volatile directory. In that case you can use a persisted session by using neovim's [standard paths](https://neovim.io/doc/user/starting.html#standard-path). Note: Existing directories won't be touched.
 
 ```bash
 tvim --persist
+```
+
+## Developing a plugin
+
+You can use [Structlog](https://github.com/Tastyep/structlog.nvim) calls if the plugin you are currently developing is in any of the runtime paths of TestVim. You probably don't want to push your changes to source control every time to make changes just to install your plugin via a plugin manager.
+
+### Method 1: Symlink your plugin into TestVim (Recommended)
+
+```bash
+ls -s /my/cool/plugin $HOME/.config/<appname>/after 
+```
+
+### Method 2: Develop your plugin in a runtime path (Not recommended)
+
+No seriously, don't do that.
+
+### Usage of structlog
+
+The logs are located in `$HOME/.local/log/<appname>`
+
+```lua
+local logger = log.get_logger("tvim")
+
+logger:info("Called a function")
+logger:debug(vim.inspect(my_data))
+logger:trace(string.format("Something is happening with: %s", my_node))
+logger:trace("Who calles this function)
+
 ```
 
 ## Special Thanks
