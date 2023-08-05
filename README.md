@@ -88,7 +88,7 @@ You can use [Structlog](https://github.com/Tastyep/structlog.nvim) calls if the 
 ### Method 1: Symlink your plugin into TestVim (Recommended)
 
 ```bash
-ls -s /my/cool/plugin $HOME/.config/<appname>/after 
+ln -s /my/cool/plugin $HOME/.config/<appname>/after 
 ```
 
 ### Method 2: Develop your plugin in a runtime path (Not recommended)
