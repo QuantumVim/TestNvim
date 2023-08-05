@@ -1,0 +1,72 @@
+name: General issue
+description: Report an issue related to TestVim
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        # Issue reporting guidelines
+
+        1. If your issue is related to a plugin you are developing please provide a link to your repository, if possible. 
+        1. Before reporting an issue, make sure that you meet the minimum requirements mentioned in the README. 
+
+        ---
+
+  - type: checkboxes
+    attributes:
+      label: I've searched open issues for similar requests
+      description: If possible, please contribute to any open issues instead of opening a new one.
+      options:
+        - label: "Yes"
+
+  - type: checkboxes
+    attributes:
+      label: I've recently downloaded the latest plugin version of TestVim
+      options:
+        - label: "Yes"
+
+  - type: textarea
+    attributes:
+      label: Problem description
+      description: A clear and short description of the issue you are having.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Expected behavior
+      description: A short description of the behavior you expected.
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: "Neovim version (>= 0.9)"
+      description: "Output of `nvim --version`"
+      placeholder: |
+        NVIM v0.9.0-dev
+        Build type: Release
+        LuaJIT 2.1.0-beta3
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: "Operating system/version"
+      description: "On Linux and Mac systems: `$ uname -a`"
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain your problem
