@@ -83,7 +83,7 @@ tvim --persist
 
 ## Developing a plugin
 
-You can use [Structlog](https://github.com/Tastyep/structlog.nvim) calls if the plugin you are currently developing is in any of the runtime paths of TestVim. You probably don't want to push your changes to source control every time to make changes just to install your plugin via a plugin manager.
+You can use [Structlog](https://github.com/Tastyep/structlog.nvim) calls if the plugin you are currently developing is in any of the runtime paths of TestVim. You probably don't want to push your changes to source control every time you make changes just to install your plugin via a plugin manager.
 
 ### Method 1: Symlink your plugin into TestVim (Recommended)
 
