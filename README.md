@@ -105,7 +105,7 @@ local logger = log.get_logger("tvim")
 logger:info("Called a function")
 logger:debug(vim.inspect(my_data))
 logger:trace(string.format("Something is happening with: %s", my_node))
-logger:trace("Who calles this function)
+logger:trace("Who calls this function)
 
 ```
 
