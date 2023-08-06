@@ -9,7 +9,7 @@ declare -x TV_BRANCH="${TV_BRANCH:-"main"}"
 declare -xr TV_REMOTE="${TV_REMOTE:-quantumfate/TestVim.git}"
 declare NVIM_APPNAME="tvim"
 
-declare -x XDG_CONFIG_DIR="${TESTNVIM_CONFIG_DIR:-"$HOME/.config"}"
+declare -x XDG_CONFIG_HOME="${TESTNVIM_CONFIG_DIR:-"$HOME/.config"}"
 declare -x XDG_STATE_HOME="${TESTNVIM_STATE_DIR:-"$HOME/.local/state"}"
 declare -x XDG_DATA_HOME="${TESTNVIM_DATA_DIR:-"$HOME/.local/share"}"
 declare -x XDG_CACHE_HOME="${TESTNVIM_CACHE_DIR:-"$HOME/.cache"}"
