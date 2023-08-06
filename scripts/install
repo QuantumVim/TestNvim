@@ -11,11 +11,10 @@ declare -xr XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-"$HOME/.config"}"
 declare NVIM_APPNAME="tvim"
 
 declare TESTNVIM_CONFIG_DIR="${TESTNVIM_CONFIG_DIR:-"$HOME/.config"}"
-declare XDG_STATE_HOME="${TESTNVIM_STATE_DIR:-"$HOME/.local/state"}"
-declare XDG_CONFIG_HOME="${TESTNVIM_CONFIG_DIR:-"$HOME/.config"}"
-declare XDG_DATA_HOME="${TESTNVIM_DATA_DIR:-"$HOME/.local/share"}"
-declare XDG_CACHE_HOME="${TESTNVIM_CACHE_DIR:-"$HOME/.cache"}"
-declare TESTNVIM_RTP_DIR=${TESTNVIM_RTP_DIR:-"${XDG_STATE_HOME}/${NVIM_APPNAME}/"}
+declare -xr XDG_STATE_HOME="${TESTNVIM_STATE_DIR:-"$HOME/.local/state"}"
+declare -xr XDG_DATA_HOME="${TESTNVIM_DATA_DIR:-"$HOME/.local/share"}"
+declare -xr XDG_CACHE_HOME="${TESTNVIM_CACHE_DIR:-"$HOME/.cache"}"
+declare -xr TESTNVIM_RTP_DIR=${TESTNVIM_RTP_DIR:-"${XDG_STATE_HOME}/${NVIM_APPNAME}/"}
 
 
 function check_neovim_min_version() {
