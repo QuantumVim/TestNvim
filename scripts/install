@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -eo pipefail
+OS="$(uname -s)"
 
 declare USE_SSH=0
 declare APP_NAME_SUPPORTED=1
@@ -8,6 +9,14 @@ declare -x TV_BRANCH="${TV_BRANCH:-"main"}"
 declare -xr TV_REMOTE="${TV_REMOTE:-quantumfate/TestVim.git}"
 declare -xr XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-"$HOME/.config"}"
 declare NVIM_APPNAME="tvim"
+
+declare TESTNVIM_CONFIG_DIR="${TESTNVIM_CONFIG_DIR:-"$HOME/.config"}"
+declare XDG_STATE_HOME="${TESTNVIM_STATE_DIR:-"$HOME/.local/state"}"
+declare XDG_CONFIG_HOME="${TESTNVIM_CONFIG_DIR:-"$HOME/.config"}"
+declare XDG_DATA_HOME="${TESTNVIM_DATA_DIR:-"$HOME/.local/share"}"
+declare XDG_CACHE_HOME="${TESTNVIM_CACHE_DIR:-"$HOME/.cache"}"
+declare TESTNVIM_RTP_DIR=${TESTNVIM_RTP_DIR:-"${XDG_STATE_HOME}/${NVIM_APPNAME}/"}
+
 
 function check_neovim_min_version() {
     local verify_version_cmd='if !has("nvim-0.9") | cquit | else | quit | endif'
@@ -92,6 +101,37 @@ function __backup_dir() {
 function clone_tvim() {
 
     # Check if there's an existing Neovim configuration
+    if [ -d "$TESTNVIM_RTP_DIR" ]; then
+        echo "An existing TestNvim instance was found in $TESTNVIM_RTP_DIR."
+        echo "Would you like to backup and replace it? (y/n)"
+        read -r answer
+
+        if [[ "$answer" != "y" ]]; then
+            echo "Aborting installation."
+            exit 1
+        else
+            __backup_dir "$TESTNVIM_RTP_DIR"
+        fi
+    fi
+    msg "Cloning TestVim configuration"
+
+    if [ "$USE_SSH" -eq 0 ]; then
+        if ! git clone --branch "$TV_BRANCH" \
+            "https://github.com/${TV_REMOTE}" "$TESTNVIM_RTP_DIR"; then
+            echo "Failed to clone repository. Installation failed."
+            exit 1
+        fi
+    else
+        if ! git clone --branch "$TV_BRANCH" \
+            "git@github.com:${TV_REMOTE}" "$TESTNVIM_RTP_DIR"; then
+            echo "Failed to clone repository. Installation failed."
+            exit 1
+        fi
+    fi
+}
+
+function generate_user_config() {
+    # Check if there's an existing user configuration
     if [ -d "$XDG_CONFIG_HOME/$NVIM_APPNAME" ]; then
         echo "An existing Neovim configuration was found in $XDG_CONFIG_HOME/$NVIM_APPNAME."
         echo "Would you like to backup and replace it? (y/n)"
@@ -103,22 +143,10 @@ function clone_tvim() {
         else
             __backup_dir "$XDG_CONFIG_HOME/$NVIM_APPNAME"
         fi
+        rm -rf "${XDG_CONFIG_HOME:?}/${NVIM_APPNAME:?}"
     fi
-    msg "Cloning TestVim configuration"
-
-    if [ "$USE_SSH" -eq 0 ]; then
-        if ! git clone --branch "$TV_BRANCH" \
-            "https://github.com/${TV_REMOTE}" "$XDG_CONFIG_HOME" "$NVIM_APPNAME"; then
-            echo "Failed to clone repository. Installation failed."
-            exit 1
-        fi
-    else
-        if ! git clone --branch "$TV_BRANCH" \
-            "git@github.com:${TV_REMOTE}" "$XDG_CONFIG_HOME" "$NVIM_APPNAME"; then
-            echo "Failed to clone repository. Installation failed."
-            exit 1
-        fi
-    fi
+    mkdir -p "$XDG_CONFIG_HOME/$NVIM_APPNAME"
+    cp -r "$TESTNVIM_RTP_DIR/utils/userconf"/* "$XDG_CONFIG_HOME/$NVIM_APPNAME"
 }
 
 function setup_tvim() {
@@ -127,10 +155,10 @@ function setup_tvim() {
 
     echo "Preparing Lazy setup"
 
-    chmod +x "$XDG_CONFIG_HOME/$NVIM_APPNAME/scripts/tvim"
+    chmod +x "$TESTNVIM_RTP_DIR/scripts/tvim"
 
     if [ -d "$HOME/.local/bin" ]; then
-        ln -s "$XDG_CONFIG_HOME/$NVIM_APPNAME/scripts/tvim" "$HOME/.local/bin/tvim"
+        ln -s "$TESTNVIM_RTP_DIR/scripts/tvim" "$HOME/.local/bin/tvim"
         # if appname supported
         if [ "$APP_NAME_SUPPORTED" -eq 1 ]; then
             tvim --headless -c 'quitall'
@@ -152,6 +180,7 @@ function main() {
     parse_arguments "$@"
     print_logo
     clone_tvim
+    generate_user_config
     setup_tvim
     msg "Thank you for installing TestVim!!"
 }

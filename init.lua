@@ -75,6 +75,16 @@ log.configure({
 	},
 })
 
+-- load user config
+local user_config = require(os.getenv("TESTNVIM_CONFIG_DIR") .. "config.lua")
+
+for _, path in ipairs(user_config.plugin_paths) do
+	vim.opt.runtimepath:append(path)
+end
+
+-- execute any logic in user config
+require(os.getenv("TESTNVIM_CONFIG_DIR") .. "init.lua")
+
 local logger = log.get_logger("tvim")
 logger:info("Tvim initialized")
 
