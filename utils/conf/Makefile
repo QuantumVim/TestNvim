@@ -7,4 +7,4 @@ run-persist:
 	bash ./scripts/tvim --persist
 
 test:
-	bash ./utils/ci/run_test.sh "$(TEST)"
+	bash ./scripts/tvim --testing
