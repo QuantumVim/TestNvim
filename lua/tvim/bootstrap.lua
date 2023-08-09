@@ -1,22 +1,9 @@
-_G.tvim = {
-	nvim_appname_supported = true,
-}
-
-if vim.fn.has("nvim-0.9") ~= 1 then
-	_G.tvim.nvim_appname_supported = false
-	vim.fn.sdtpath = function(what)
-		if what == "data" then
-			return os.getenv("TESTNVIM_DATA_DIR")
-		end
-	end
-end
-
 local M = {}
 
-function M.load_lazy()
+--- Inintialize tvim with lazy.nvim
+function M.init()
 	-- bootstrap lazy
-	local data = vim.fn.stdpath("data")
-	local pack_path = data .. "/after/pack/lazy/opt"
+	local pack_path = vim.fn.stdpath("pack")
 	local lazypath = pack_path .. "/lazy.nvim"
 	if not vim.loop.fs_stat(lazypath) then
 		vim.fn.system({
@@ -46,13 +33,13 @@ function M.load_lazy()
 		install = {
 			missing = true,
 		},
-		lockfile = vim.fn.stdpath("cache") .. "/lazy-lock.json",
+		lockfile = vim.fn.stdpath("log") .. "/lazy-lock.json",
 		root = pack_path,
 		performance = {
 			cache = {
 				enabled = true,
 			},
-			reset_packpath = true, -- reset the package path to improve startup time
+			reset_packpath = false, -- reset the package path to improve startup time
 			rtp = {
 				reset = false, -- reset the runtime path to $VIMRUNTIME and your config directory
 				---@type string[]
@@ -70,9 +57,41 @@ function M.load_lazy()
 				},
 			},
 		},
+		readme = {
+			enabled = true,
+			root = vim.fn.stdpath("data") .. "/lazy/readme",
+			files = { "README.md", "lua/**/README.md" },
+			-- only generate markdown helptags for plugins that dont have docs
+			skip_if_doc_exists = true,
+		},
 	})
 end
 
+---Bootstrap tvim with rtp modifications
+function M.bootstrap()
+	-- these have to be added after lazy setup
+	vim.opt.rtp:prepend(
+		join_paths(
+			os.getenv(_G.tvim.env_prefix .. "STATE_DIR"),
+			"site",
+			"after"
+		)
+	)
+	vim.opt.rtp:prepend(
+		join_paths(os.getenv(_G.tvim.env_prefix .. "STATE_DIR"), "site")
+	)
+	vim.opt.rtp:prepend(
+		join_paths(os.getenv(_G.tvim.env_prefix .. "STATE_DIR"), "after")
+	)
+
+	-- any calls that require state in rtp follow here
+	local util = require("tvim.util")
+	if not _G.tvim.app_name_supported() then
+		vim.opt.rtp = util.modify_runtime_path()
+	end
+end
+
+---Load structlog
 function M.load_structlog()
 	local log = require("structlog")
 
@@ -82,7 +101,10 @@ function M.load_structlog()
 				{
 					level = log.level.INFO,
 					processors = {
-						log.processors.StackWriter({ "line", "file" }, { max_parents = 0, stack_level = 0 }),
+						log.processors.StackWriter(
+							{ "line", "file" },
+							{ max_parents = 0, stack_level = 0 }
+						),
 						log.processors.Timestamper("%H:%M:%S"),
 					},
 					formatter = log.formatters.FormatColorizer( --
@@ -95,32 +117,43 @@ function M.load_structlog()
 				{
 					level = log.level.DEBUG,
 					processors = {
-						log.processors.StackWriter({ "line", "file" }, { max_parents = 0, stack_level = 1 }),
+						log.processors.StackWriter(
+							{ "line", "file" },
+							{ max_parents = 0, stack_level = 1 }
+						),
 						log.processors.Timestamper("%H:%M:%S"),
 					},
 					formatter = log.formatters.Format( --
 						"%s [%s] %s: %-30s",
 						{ "timestamp", "level", "logger_name", "msg" }
 					),
-					sink = log.sinks.File(os.getenv("TESTNVIM_LOG_DIR") .. "/debug.log"),
+					sink = log.sinks.File(
+						vim.fn.stdpath("log") .. "/debug.log"
+					),
 				},
 				{
 					level = log.level.TRACE,
 					processors = {
-						log.processors.StackWriter({ "line", "file" }, { max_parents = 3, stack_level = 5 }),
+						log.processors.StackWriter(
+							{ "line", "file" },
+							{ max_parents = 3, stack_level = 5 }
+						),
 						log.processors.Timestamper("%H:%M:%S"),
 					},
 					formatter = log.formatters.Format( --
 						"%s [%s] %s: %-30s",
 						{ "timestamp", "level", "logger_name", "msg" }
 					),
-					sink = log.sinks.File(os.getenv("TESTNVIM_LOG_DIR") .. "/trace.log"),
+					sink = log.sinks.File(
+						vim.fn.stdpath("log") .. "/trace.log"
+					),
 				},
 			},
 		},
 	})
 end
 
+---Load and execute user config
 function M.load_user_conf()
 	local config_path = vim.fn.stdpath("config")
 

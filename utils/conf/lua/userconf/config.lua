@@ -1,5 +1,5 @@
 ---@class user_cunfig
----@field plugin_paths string[]|table<string, string>
+---@field plugin_paths table<string|table<string,string|boolean>|nil>
 local M = {
 	plugin_paths = {
 		-- add any full paths to your plugins here

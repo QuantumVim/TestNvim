@@ -75,27 +75,6 @@ function parse_arguments() {
     done
 }
 
-function __backup_dir() {
-    local src="$1"
-    if [ ! -d "$src" ]; then
-        return
-    fi
-    mkdir -p "$src.old"
-    msg "Backing up old $src to $src.old"
-    if command -v rsync &>/dev/null; then
-        rsync --archive --quiet --backup --partial --copy-links --cvs-exclude "$src"/ "$src.old"
-    else
-        case "$OS" in
-            Darwin)
-                cp -R "$src/." "$src.old/."
-                ;;
-            *)
-                cp -r "$src/." "$src.old/."
-                ;;
-        esac
-    fi
-}
-
 function clone_tvim() {
 
     # Check if there's an existing Neovim configuration

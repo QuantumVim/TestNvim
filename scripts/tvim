@@ -1,35 +1,38 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
+current_script_path=$(readlink -f "${BASH_SOURCE[0]}")
+current_script_dir=$(dirname "$current_script_path")
+
+source "$current_script_dir/messages"
+source "$current_script_dir/functions"
+
 persisting=false
 testing=false
-test_file="minimal_init.lua"
-appname="tvim"
-clear_instance=false
+profile="default"
 freeze=false
+plenary_url="https://github.com/nvim-lua/plenary.nvim.git"
+structlog_url="https://github.com/Tastyep/structlog.nvim.git"
+clear=false
 
 print_usage() {
-    printf "Run a neovim instance with the specified configuration. The Neovim XDG directories are set to temporary directories which are persisted between runs\n"
-    printf "unless the --persist flag is set. In this case, the default Neovim XDG directories appended with the appname are used.\n"
-    printf "\nPlenary and structlog are cloned into the packpath if they don't exist yet and will always be in the runtime path.\n"
-    printf "\nUsage: %s [-a appname] [-i init_file] [--testing] [-t test_file] [-x test_arg] [-c] [-p] [--freeze]\n" "$0"
-    printf "\nOptions:\n"
-    printf "  -a, --appname APPNAME       Specify the appname to use. Default is 'tvim'. (Optional)\n"
-    printf "  --testing                   Run tests in headless mode. This enables the -t and -x options. (Optional)\n"
-    printf "  -t, --test-file FILENAME    Specify the test file to use. Only valid when --testing is set. Default is 'minimal_init.lua'. (Optional)\n"
-    printf "  -x, --test-arg ARG          Specify an argument for the plenary busted lua call. Only valid when --testing is set. (Optional)\n"
-    printf "  -r, --remove                Force the script start with a fresh instance of neovim. This will remove the reference to the last /tmp folder\n"
-    printf "                              or removes the persisted folders when --persist is set. Consider setting the appname explicitly when you used a different appname before (Optional)\n"
-    printf "  --persist                   Use default Neovim's standard user directories instead of temporary directories. (Optional)\n"
-    printf "  --freeze                    Copy all files from the /tmp/XDG directories to the real XDG directories. Not to be used with --persist. (Optional)\n"
+    printf "Usage: %s [OPTIONS]\n" "$(basename "$0")"
+    printf "  --profile                   The profile to use. (Optional, default: default)\n"
+    printf "  --clear                     Clear the last temporary session. Prepares for a new fresh session. (Optional)\n"
+    printf "  --persist                   Use default Neovim's standard user directories appended with a profile instead of temporary directories. (Optional, default: false)\n"
+    printf "  --freeze                    Copy all files from the /tmp/XDG directories to the real XDG directories. Not to be used with --persist. (Optional, default: false)\n"
+    printf "  --testing                   Run tests in headless mode. This enables the -x options. (Optional, default: false)\n"
+    printf "  -x, --test-arg              Pass an argument to the test runner. (Optional, default: none)\n"
+    printf "  --plenary-url               The URL to clone plenary from. (Optional, default: https://github.com/nvim-lua/plenary.nvim.git)\n"
+    printf "  --structlog-url             The URL to clone structlog from. (Optional, default: https://github.com/Tastyep/structlog.nvim.git)\n"
     printf "  -h, --help                  Show this help message and exit.\n"
 }
 
 while (( "$#" )); do
     case "$1" in
-        -a|--appname)
+        --profile)
             if [ -n "$2" ] && [ "${2:0:1}" != "-" ]; then
-                appname=$2
+                profile=$2
                 shift 2
             else
                 echo "Error: Argument for $1 is missing" >&2
@@ -44,21 +47,9 @@ while (( "$#" )); do
             testing=true
             shift
             ;;
-        -t|--test-file)
-            if [ "$testing" = true ]; then
-                if [ -n "$2" ] && [ "${2:0:1}" != "-" ]; then
-                    printf "[INFO]: None standard test file detected: %s." "$2"
-                    printf "[INFO]: Ensure runtime path is properly configured."
-                    test_file=$2
-                    shift 2
-                else
-                    echo "Error: Argument for $1 is missing" >&2
-                    exit 1
-                fi
-            else
-                echo "Error: $1 is only valid when --testing is set" >&2
-                exit 1
-            fi
+        --clear)
+            clear=true
+            shift
             ;;
         -x|--test-arg)
             if [ "$testing" = true ]; then
@@ -74,10 +65,6 @@ while (( "$#" )); do
                 exit 1
             fi
             ;;
-        -r|--remove)
-            clear_instance=true
-            shift
-            ;;
         --persist)
             persisting=true
             shift
@@ -86,6 +73,24 @@ while (( "$#" )); do
             print_usage
             exit 0
             ;;
+        --plenary-url)
+            if [ -n "$2" ] && [ "${2:0:1}" != "-" ]; then
+                plenary_url=$2
+                shift 2
+            else
+                echo "Error: Argument for $1 is missing" >&2
+                exit 1
+            fi
+            ;;
+        --structlog-url)
+            if [ -n "$2" ] && [ "${2:0:1}" != "-" ]; then
+                structlog_url=$2
+                shift 2
+            else
+                echo "Error: Argument for $1 is missing" >&2
+                exit 1
+            fi
+            ;;
         *)
             PARAMS="$PARAMS $1"
             shift
@@ -93,71 +98,101 @@ while (( "$#" )); do
     esac
 done
 
-declare -xr NVIM_APPNAME="$appname"
-
-function tvim_tmp(){
-    local path
-    path="$(mktemp -d --suffix="${NVIM_APPNAME}")"
-    mkdir -p "${path}/${NVIM_APPNAME}"
-    echo "${path}/${NVIM_APPNAME}"
-}
+if [ "$clear" = true ]; then
+    info_msg "Clearing last session..."
+    rm /tmp/testnvim/vars.sh
+fi
 
 if [ "$freeze" = true ] && [ "$persisting" = true ]; then
-    echo "Error: --freeze and --persist modes are mutually exclusive."
+    error_msg "Error: --freeze and --persist cannot be used together" >&2
     exit 1
 fi
 
-if [ "$clear_instance" = true ]; then
-    if [ -f /tmp/testnvim/vars.sh ]; then
-        rm -f /tmp/testnvim/vars.sh
-    fi
-    if [ "$persisting" = true ]; then
-        rm -rf "$HOME/.local/share/$appname"
-        rm -rf "$HOME/.cache/$appname"
-    fi
-fi
+export TESTNVIM_APPNAME=${TESTNVIM_APPNAME:-"tvim"}
+export NVIM_APPNAME="$TESTNVIM_APPNAME"
+
+function tvim_tmp(){
+    mktemp -d --suffix="-${TESTNVIM_APPNAME}-$profile-$1"
+}
 
 if [ "$persisting" = false ]; then
     if [ -f /tmp/testnvim/vars.sh ]; then
         source /tmp/testnvim/vars.sh
+        if [ "$profile" != "$TESTNVIM_USER_PROFILE" ]; then
+            warn_msg "[WARN]: Please clear your last session with '--clear' before creating a new profile."
+        fi
     else
-        TESTNVIM_CACHE_DIR="$(tvim_tmp)"
-        TESTNVIM_DATA_DIR="$(tvim_tmp)"
+        TESTNVIM_CACHE_PROFILE="$(tvim_tmp "cache")"
+        TESTNVIM_DATA_PROFILE="$(tvim_tmp "data")"
+        TESTNVIM_LOG_PROFILE="$(tvim_tmp "log")"
 
         mkdir -p /tmp/testnvim
-        echo "export TESTNVIM_CACHE_DIR=$TESTNVIM_CACHE_DIR" > /tmp/testnvim/vars.sh
-        echo "export TESTNVIM_DATA_DIR=$TESTNVIM_DATA_DIR" >> /tmp/testnvim/vars.sh
+        {
+            echo "export TESTNVIM_USER_PROFILE=$profile";
+            echo "export TESTNVIM_CACHE_PROFILE=$TESTNVIM_CACHE_PROFILE" ;
+            echo "export TESTNVIM_DATA_PROFILE=$TESTNVIM_DATA_PROFILE" ;
+            echo "export TESTNVIM_LOG_PROFILE=$TESTNVIM_LOG_PROFILE" ;
+        } > /tmp/testnvim/vars.sh
     fi
 fi
 
-TESTNVIM_APP_NAME_SUPPORTED=1
+export TESTNVIM_USER_PROFILE=${TESTNVIM_USER_PROFILE:-"$profile"}
+source "$current_script_dir/vars"
 
-verify_version_cmd='if !has("nvim-0.9") | cquit | else | quit | endif'
+info_msg "[INFO]: Using profile: $TESTNVIM_USER_PROFILE"
+declare -a persisting_dirs=(
+    # order matters
+    "$XDG_DATA_HOME/$TESTNVIM_APPNAME/$TESTNVIM_USER_PROFILE"
+    "$XDG_CACHE_HOME/$TESTNVIM_APPNAME/$TESTNVIM_USER_PROFILE"
+    "$XDG_LOG_HOME/$TESTNVIM_APPNAME/$TESTNVIM_USER_PROFILE"
+)
+declare -a old_tmp_dirs=(
+    # order matters
+    "$TESTNVIM_DATA_PROFILE"
+    "$TESTNVIM_CACHE_PROFILE"
+    "$TESTNVIM_LOG_PROFILE"
+)
 
-# exit with an error if min_version not found
-if ! nvim --headless -u NONE -c "$verify_version_cmd"; then
-    echo "[WARN]: Neovim v0.9 not satisfied. Appname defaults to 'nvim'."
-    TESTNVIM_APP_NAME_SUPPORTED=0
-fi
+TESTNVIM_PACK_DIR="${TESTNVIM_DATA_PROFILE}/after/pack/lazy/opt"
+TESTNVIM_PLENARY_DIR="${TESTNVIM_PACK_DIR}/plenary"
+TESTNVIM_STRUCTLOG_DIR="${TESTNVIM_PACK_DIR}/structlog"
 
-declare -xr TESTNVIM_APP_NAME_SUPPORTED
+declare -xr TESTNVIM_PACK_DIR TESTNVIM_PLENARY_DIR TESTNVIM_STRUCTLOG_DIR
 
-declare -x XDG_STATE_HOME="${TESTNVIM_STATE_DIR:-"$HOME/.local/state"}"
-declare -x XDG_CONFIG_HOME="${TESTNVIM_CONFIG_DIR:-"$HOME/.config"}"
-declare -x XDG_DATA_HOME="${TESTNVIM_DATA_DIR:-"$HOME/.local/share"}"
-declare -x XDG_CACHE_HOME="${TESTNVIM_CACHE_DIR:-"$HOME/.cache"}"
-declare -xr TESTNVIM_LOG_DIR="${TESTNVIM_LOG_DIR:-"$HOME/.local/log/$NVIM_APPNAME"}"
-declare -xr TESTNVIM_STATE_DIR="${TESTNVIM_STATE_DIR:"$XDG_STATE_HOME/$NVIM_APPNAME"}"
-declare -xr TESTNVIM_CONFIG_DIR="${TESTNVIM_CONFIG_DIR:"$XDG_CONFIG_HOME/$NVIM_APPNAME"}"
-declare -xr TESTNVIM_DATA_DIR="${TESTNVIM_DATA_DIR:"$XDG_DATA_HOME/$NVIM_APPNAME"}"
-declare -xr TESTNVIM_CACHE_DIR="${TESTNVIM_CACHE_DIR:"$XDG_CACHE_HOME/$NVIM_APPNAME"}"
+### Creates a new persisting profile
+function create_persisting_profile() {
 
-mkdir -p "$TESTNVIM_LOG_DIR"
+    echo "[INFO]: Preparing profile: $TESTNVIM_USER_PROFILE"
 
+    for dir in "${persisting_dirs[@]}"; do
+        if [ ! -d "$dir" ]; then
+            mkdir -p "$dir"
+            echo "[INFO]: Created profile directory: $dir"
+        else
+            echo "[INFO]: Using existing profile directory: $dir"
+        fi
+    done
+
+    echo "[INFO]: Profile prepared successfully."
+}
+
+### Freezes the last session into a persisting state
 function freeze_config() {
-    # Check if there's any existing directory in the real XDG directories
-    if [ -d "$HOME/.local/share/$NVIM_APPNAME" ] || [ -d "$HOME/.cache/$NVIM_APPNAME" ]; then
-        echo "Existing directories found in the real XDG directories."
+
+    echo "Freezing configuration..."
+    declare -a existing_dirs=()
+
+    for dir in "${persisting_dirs[@]}"; do
+        if [ -d "$dir" ]; then
+            existing_dirs+=("$dir")
+        fi
+    done
+
+    if [ "${#existing_dirs[@]}" -gt 0 ]; then
+        echo "Existing profiles detected:"
+        for dir in "${existing_dirs[@]}"; do
+            echo "  $dir"
+        done
         echo "Would you like to backup and replace them? (y/n)"
         read -r answer
 
@@ -165,52 +200,77 @@ function freeze_config() {
             echo "Aborting freeze."
             exit 1
         else
-            __backup_dir "$HOME/.local/share/$appname"
-            __backup_dir "$HOME/.cache/$appname"
+            for dir in "${existing_dirs[@]}"; do
+                __backup_dir "$dir" "$dir/after/pack/lazy/opt/*"
+            done
         fi
     fi
 
-    echo "Freezing configuration..."
-    mkdir -p "$HOME/.local/share/$NVIM_APPNAME"
-    mkdir -p "$HOME/.cache/$NVIM_APPNAME"
-    cp -r "$TESTNVIM_DATA_DIR/." "$HOME/.local/share/$NVIM_APPNAME/"
-    cp -r "$TESTNVIM_CACHE_DIR/." "$HOME/.cache/$NVIM_APPNAME/"
-    echo "Freeze complete."
+    for i in "${!old_tmp_dirs[@]}"; do
+        mkdir -p "${persisting_dirs[$i]}"
+        cp -r "${old_tmp_dirs[$i]}/." "${persisting_dirs[$i]}"
+    done
+
+    rm /tmp/testnvim/vars.sh
+    info_msg "[INFO]: Use this profile with: $TESTNVIM_APPNAME --persist --profile $TESTNVIM_USER_PROFILE"
+    info_msg "Freeze complete."
 }
 
-echo ""
-echo "TestNvim configuration:"
-echo "appname: $NVIM_APPNAME"
-echo "cache dir: $TESTNVIM_CACHE_DIR"
-echo "state dir: $TESTNVIM_STATE_DIR"
-echo "data dir: $TESTNVIM_DATA_DIR"
-echo "config dir: $TESTNVIM_CONFIG_DIR"
-echo "log dir: $TESTNVIM_LOG_DIR"
-echo ""
+function print_tvim_config(){
+    echo ""
+    echo "TestNvim configuration:"
+    echo "  Profile: ${TESTNVIM_USER_PROFILE}"
+    echo "  Cache dir: $TESTNVIM_CACHE_PROFILE"
+    echo "  State dir: $TESTNVIM_STATE_DIR"
+    echo "  Data dir: $TESTNVIM_DATA_PROFILE"
+    echo "  Config dir: $TESTNVIM_CONFIG_PROFILE"
+    echo "  Log dir: $TESTNVIM_LOG_PROFILE"
+    echo ""
 
-if [ -n "$PARAMS" ]; then
-    echo "Neovim parameters: $PARAMS"
-fi
+}
 
-TESTNVIM_PACK_DIR="${TESTNVIM_DATA_DIR}/after/pack/lazy/opt"
-TESTNVIM_PLENARY_DIR="${TESTNVIM_PACK_DIR}/plenary"
-TESTNVIM_STRUCTLOG_DIR="${TESTNVIM_PACK_DIR}/structlog"
+function clone_plugins() {
+    declare -a plugins=(
+        # order matters
+        "$plenary_url"
+        "$structlog_url"
+    )
 
-declare -xr TESTNVIM_PACK_DIR TESTNVIM_PLENARY_DIR TESTNVIM_STRUCTLOG_DIR
+    declare -a plugin_dirs=(
+        # order matters
+        "$TESTNVIM_PLENARY_DIR"
+        "$TESTNVIM_STRUCTLOG_DIR"
+    )
+    # clone the plugins when they don't exist yet
+    mkdir -p "${TESTNVIM_PACK_DIR}"
+    for i in "${!plugins[@]}"; do
+        if [ ! -d "${plugin_dirs[$i]}" ]; then
+            info_msg "[INFO]: Cloning plugin: ${plugins[$i]} into: ${plugin_dirs[$i]}"
+            output=$(git clone "${plugins[$i]}" "${plugin_dirs[$i]}" 2>&1)
 
-# clone the plugins when they don't exist yet
-mkdir -p "${TESTNVIM_PACK_DIR}"
-if [ ! -d "${TESTNVIM_PLENARY_DIR}" ]; then
-    git clone https://github.com/nvim-lua/plenary.nvim.git "${TESTNVIM_PLENARY_DIR}"
-fi
-if [ ! -d "${TESTNVIM_STRUCTLOG_DIR}" ]; then
-    git clone https://github.com/Tastyep/structlog.nvim.git "${TESTNVIM_STRUCTLOG_DIR}"
-fi
+            if [ ! "$output" ]; then
+                echo "$output" | tail -n +2 | while IFS= read -r line; do
+                    warn_msg "$line"
+                done
+            fi
+        fi
+    done
+}
+
+function create_user_config() {
+    if [ ! -d "$TESTNVIM_CONFIG_PROFILE" ]; then
+        mkdir -p "$TESTNVIM_CONFIG_PROFILE"
+        cp -r "$TESTNVIM_STATE_DIR/utils/conf"/* "$TESTNVIM_CONFIG_PROFILE"
+        info_msg "[INFO]: Created config profile: $TESTNVIM_CONFIG_PROFILE"
+    else
+        info_msg "[INFO]: Using existing config profile: $TESTNVIM_CONFIG_PROFILE"
+    fi
+}
 
 # Run tests in the user config directory
 function test_nvim() {
     # shellcheck disable=SC2086
-    nvim -u "${TESTNVIM_CONFIG_DIR}/tests/$test_file" \
+    nvim -u "${TESTNVIM_CONFIG_PROFILE}/tests/minimal_init.lua" \
         "$@" $PARAMS
 }
 
@@ -227,11 +287,26 @@ function setup() {
         exit 0
     fi
 
+    clone_plugins
+
+    create_user_config
+
+    if [ "$persisting" = true ] ; then
+        create_persisting_profile
+    fi
+
+    print_tvim_config
+
+    if [ -n "$PARAMS" ]; then
+        info_msg "[INFO]: Neovim parameters: $PARAMS"
+    fi
+
+
     if [ "$testing" = true ]; then
         if [ -n "$test_arg" ]; then
             test_nvim --headless -c "lua require('plenary.busted').run('$test_arg')"
         else
-            test_nvim --headless -c "PlenaryBustedDirectory tests/specs { minimal_init = './tests/$test_file' }"
+            test_nvim --headless -c "PlenaryBustedDirectory ${TESTNVIM_CONFIG_PROFILE}/tests/specs { minimal_init = '${TESTNVIM_CONFIG_PROFILE}/tests/minimal_init.lua' }"
         fi
     else
         run_nvim
