@@ -3,13 +3,7 @@ set -eo pipefail
 
 export TESTNVIM_APPNAME=${TESTNVIM_APPNAME:-"tvim"}
 
-function tvim_tmp(){
-    local path
-    path=$(mktemp -d --suffix="${TESTNVIM_APPNAME}")
-    mkdir -p "${path}/${TESTNVIM_APPNAME}"
-    echo "${path}/${TESTNVIM_APPNAME}"
-}
-
+profile=${TESTNVIM_USER_PROFILE:-"default"}
 init_file="tvim"
 disable_appname=false
 plenary_url="https://github.com/nvim-lua/plenary.nvim.git"
@@ -40,22 +34,25 @@ if [ "$disable_appname" = false ]; then
     export NVIM_APPNAME=${TESTNVIM_APPNAME}
 fi
 
-## TODO do we need to set this?
-export XDG_STATE_HOME="${XDG_STATE_HOME:-"$HOME/.local/state"}"
-export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-"$HOME/.config"}"
-export XDG_DATA_HOME="${XDG_DATA_HOME:-"$HOME/.local/share"}"
-export XDG_CACHE_HOME="${XDG_CACHE_HOME:-"$HOME/.cache"}"
+source "./scripts/vars"
+source "./scripts/messages"
+function tvim_tmp(){
+    mktemp -d --suffix="-${TESTNVIM_APPNAME}-$profile-$1"
+}
 
-export TESTNVIM_LOG_DIR="${TESTNVIM_LOG_DIR:-"$(tvim_tmp)"}"
-export TESTNVIM_STATE_DIR="${TESTNVIM_STATE_DIR:-"$XDG_STATE_HOME/$TESTNVIM_APPNAME"}"
-export TESTNVIM_CONFIG_DIR="${TESTNVIM_CONFIG_DIR:-"$(tvim_tmp)"}"
-export TESTNVIM_DATA_DIR="${TESTNVIM_DATA_DIR:-"$(tvim_tmp)"}"
-export TESTNVIM_CACHE_DIR="${TESTNVIM_CACHE_DIR:-"$(tvim_tmp)"}"
+tmp_log="$(tvim_tmp "log")"
+tmp_config="$(tvim_tmp "config")"
+tmp_data="$(tvim_tmp "data")"
+tmp_cache="$(tvim_tmp "cache")"
 
+export TESTNVIM_LOG_PROFILE=${tmp_log}
+export TESTNVIM_CONFIG_PROFILE=${tmp_config}
+export TESTNVIM_DATA_PROFILE=${tmp_data}
+export TESTNVIM_CACHE_PROFILE=${tmp_cache}
 
-cp -r "${TESTNVIM_STATE_DIR}/utils/ci/conf"/* "${TESTNVIM_CONFIG_DIR}"
+cp -r "${TESTNVIM_STATE_DIR}/utils/ci/conf"/* "${TESTNVIM_CONFIG_PROFILE}"
 
-TESTNVIM_PACK_DIR="${TESTNVIM_DATA_DIR}/after/pack/lazy/opt"
+TESTNVIM_PACK_DIR="${TESTNVIM_DATA_PROFILE}/after/pack/lazy/opt"
 TESTNVIM_PLENARY_DIR="${TESTNVIM_PACK_DIR}/plenary"
 TESTNVIM_STRUCTLOG_DIR="${TESTNVIM_PACK_DIR}/structlog"
 
@@ -76,12 +73,14 @@ function test_tvim() {
         "$@"
 }
 
-echo "appname: $TESTNVIM_APPNAME"
-echo "config: $TESTNVIM_CONFIG_DIR"
-echo "data: $TESTNVIM_DATA_DIR"
-echo "cache: $TESTNVIM_CACHE_DIR"
-echo "state: $TESTNVIM_STATE_DIR"
-echo "log: $TESTNVIM_LOG_DIR"
+info_msg "TestNvim configuration:"
+compact_info_msg "  Profile: ${TESTNVIM_USER_PROFILE}"
+compact_info_msg "  Cache dir: $TESTNVIM_CACHE_PROFILE"
+compact_info_msg "  State dir: $TESTNVIM_STATE_DIR"
+compact_info_msg "  Data dir: $TESTNVIM_DATA_PROFILE"
+compact_info_msg "  Config dir: $TESTNVIM_CONFIG_PROFILE"
+compact_info_msg "  Log dir: $TESTNVIM_LOG_PROFILE\n"
+
 
 if [ -n "$1" ]; then
     test_tvim --headless -c "lua require('plenary.busted').run('$1')"

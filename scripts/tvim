@@ -16,16 +16,17 @@ structlog_url="https://github.com/Tastyep/structlog.nvim.git"
 clear=false
 
 print_usage() {
-    printf "Usage: %s [OPTIONS]\n" "$(basename "$0")"
-    printf "  --profile                   The profile to use. (Optional, default: default)\n"
-    printf "  --clear                     Clear the last temporary session. Prepares for a new fresh session. (Optional)\n"
-    printf "  --persist                   Use default Neovim's standard user directories appended with a profile instead of temporary directories. (Optional, default: false)\n"
-    printf "  --freeze                    Copy all files from the /tmp/XDG directories to the real XDG directories. Not to be used with --persist. (Optional, default: false)\n"
-    printf "  --testing                   Run tests in headless mode. This enables the -x options. (Optional, default: false)\n"
-    printf "  -x, --test-arg              Pass an argument to the test runner. (Optional, default: none)\n"
-    printf "  --plenary-url               The URL to clone plenary from. (Optional, default: https://github.com/nvim-lua/plenary.nvim.git)\n"
-    printf "  --structlog-url             The URL to clone structlog from. (Optional, default: https://github.com/Tastyep/structlog.nvim.git)\n"
-    printf "  -h, --help                  Show this help message and exit.\n"
+    pretty_usage "Usage: %s [OPTIONS]\n" "$(basename "$0")"
+    pretty_usage "  --profile                   The profile to use. (Optional, default: default)"
+    pretty_usage "  --clear                     Clear the last temporary session. Prepares for a new fresh session. (Optional)"
+    pretty_usage "  --persist                   Use default Neovim's standard user directories appended with a profile instead of temporary directories. (Optional, default: false)\n"
+    pretty_usage "  --freeze                    Copy all files from the /tmp/XDG directories to the real XDG directories. Not to be used with --persist. (Optional, default: false)"
+    pretty_usage "                              NOTE: Implicitely removes the reference to the last temporary session.\n"
+    pretty_usage "  --testing                   Run tests in headless mode. This enables the -x options. (Optional, default: false)"
+    pretty_usage "  -x, --test-arg              Pass an argument to the test runner. (Optional, default: none)\n"
+    pretty_usage "  --plenary-url               The URL to clone plenary from. (Optional, default: https://github.com/nvim-lua/plenary.nvim.git)"
+    pretty_usage "  --structlog-url             The URL to clone structlog from. (Optional, default: https://github.com/Tastyep/structlog.nvim.git)\n"
+    pretty_usage "  -h, --help                  Show this help message and exit.\n"
 }
 
 while (( "$#" )); do
@@ -35,7 +36,7 @@ while (( "$#" )); do
                 profile=$2
                 shift 2
             else
-                echo "Error: Argument for $1 is missing" >&2
+                compact_error_msg "Argument for $1 is missing" >&2
                 exit 1
             fi
             ;;
@@ -57,11 +58,11 @@ while (( "$#" )); do
                     test_arg=$2
                     shift 2
                 else
-                    echo "Error: Argument for $1 is missing" >&2
+                    compact_error_msg "Argument for $1 is missing" >&2
                     exit 1
                 fi
             else
-                echo "Error: $1 is only valid when --testing is set" >&2
+                compact_error_msg "$1 is only valid when --testing is set" >&2
                 exit 1
             fi
             ;;
@@ -78,7 +79,7 @@ while (( "$#" )); do
                 plenary_url=$2
                 shift 2
             else
-                echo "Error: Argument for $1 is missing" >&2
+                compact_error_msg "Argument for $1 is missing" >&2
                 exit 1
             fi
             ;;
@@ -87,7 +88,7 @@ while (( "$#" )); do
                 structlog_url=$2
                 shift 2
             else
-                echo "Error: Argument for $1 is missing" >&2
+                compact_error_msg "Argument for $1 is missing" >&2
                 exit 1
             fi
             ;;
@@ -99,12 +100,12 @@ while (( "$#" )); do
 done
 
 if [ "$clear" = true ]; then
-    info_msg "Clearing last session..."
+    compact_info_msg "Clearing last session..."
     rm /tmp/testnvim/vars.sh
 fi
 
 if [ "$freeze" = true ] && [ "$persisting" = true ]; then
-    error_msg "Error: --freeze and --persist cannot be used together" >&2
+    compact_error_msg "--freeze and --persist cannot be used together" >&2
     exit 1
 fi
 
@@ -119,7 +120,7 @@ if [ "$persisting" = false ]; then
     if [ -f /tmp/testnvim/vars.sh ]; then
         source /tmp/testnvim/vars.sh
         if [ "$profile" != "$TESTNVIM_USER_PROFILE" ]; then
-            warn_msg "[WARN]: Please clear your last session with '--clear' before creating a new profile."
+            warn_msg "Please clear your last session with '--clear' before creating a new profile."
         fi
     else
         TESTNVIM_CACHE_PROFILE="$(tvim_tmp "cache")"
@@ -139,7 +140,7 @@ fi
 export TESTNVIM_USER_PROFILE=${TESTNVIM_USER_PROFILE:-"$profile"}
 source "$current_script_dir/vars"
 
-info_msg "[INFO]: Using profile: $TESTNVIM_USER_PROFILE"
+info_msg "Using profile: $TESTNVIM_USER_PROFILE"
 declare -a persisting_dirs=(
     # order matters
     "$XDG_DATA_HOME/$TESTNVIM_APPNAME/$TESTNVIM_USER_PROFILE"
@@ -162,24 +163,28 @@ declare -xr TESTNVIM_PACK_DIR TESTNVIM_PLENARY_DIR TESTNVIM_STRUCTLOG_DIR
 ### Creates a new persisting profile
 function create_persisting_profile() {
 
-    echo "[INFO]: Preparing profile: $TESTNVIM_USER_PROFILE"
+    if [ -f /tmp/testnvim/vars.sh ]; then
+        warn_msg "Next call with '--freeze' might conflict with this profile."
+    fi
+
+    info_msg "Preparing profile: $TESTNVIM_USER_PROFILE"
 
     for dir in "${persisting_dirs[@]}"; do
         if [ ! -d "$dir" ]; then
             mkdir -p "$dir"
-            echo "[INFO]: Created profile directory: $dir"
+            compact_info_msg "Created profile directory: $dir"
         else
-            echo "[INFO]: Using existing profile directory: $dir"
+            compact_info_msg "Using existing profile directory: $dir"
         fi
     done
 
-    echo "[INFO]: Profile prepared successfully."
+    compact_success_msg "Profile prepared successfully."
 }
 
 ### Freezes the last session into a persisting state
 function freeze_config() {
 
-    echo "Freezing configuration..."
+    info_msg "Freezing configuration..."
     declare -a existing_dirs=()
 
     for dir in "${persisting_dirs[@]}"; do
@@ -189,15 +194,15 @@ function freeze_config() {
     done
 
     if [ "${#existing_dirs[@]}" -gt 0 ]; then
-        echo "Existing profiles detected:"
+        compact_warn_msg "Existing profiles detected:"
         for dir in "${existing_dirs[@]}"; do
-            echo "  $dir"
+            compact_warn_msg "  $dir"
         done
-        echo "Would you like to backup and replace them? (y/n)"
+        compact_warn_msg "Would you like to backup and replace them? (y/n)"
         read -r answer
 
         if [[ "$answer" != "y" ]]; then
-            echo "Aborting freeze."
+            compact_error_msg "Aborting freeze."
             exit 1
         else
             for dir in "${existing_dirs[@]}"; do
@@ -212,20 +217,18 @@ function freeze_config() {
     done
 
     rm /tmp/testnvim/vars.sh
-    info_msg "[INFO]: Use this profile with: $TESTNVIM_APPNAME --persist --profile $TESTNVIM_USER_PROFILE"
-    info_msg "Freeze complete."
+    compact_info_msg "[INFO]: Use this profile with: $TESTNVIM_APPNAME --persist --profile $TESTNVIM_USER_PROFILE"
+    compact_success_msg "Freeze complete."
 }
 
 function print_tvim_config(){
-    echo ""
-    echo "TestNvim configuration:"
-    echo "  Profile: ${TESTNVIM_USER_PROFILE}"
-    echo "  Cache dir: $TESTNVIM_CACHE_PROFILE"
-    echo "  State dir: $TESTNVIM_STATE_DIR"
-    echo "  Data dir: $TESTNVIM_DATA_PROFILE"
-    echo "  Config dir: $TESTNVIM_CONFIG_PROFILE"
-    echo "  Log dir: $TESTNVIM_LOG_PROFILE"
-    echo ""
+    info_msg "TestNvim configuration:"
+    compact_info_msg "  Profile: ${TESTNVIM_USER_PROFILE}"
+    compact_info_msg "  Cache dir: $TESTNVIM_CACHE_PROFILE"
+    compact_info_msg "  State dir: $TESTNVIM_STATE_DIR"
+    compact_info_msg "  Data dir: $TESTNVIM_DATA_PROFILE"
+    compact_info_msg "  Config dir: $TESTNVIM_CONFIG_PROFILE"
+    compact_info_msg "  Log dir: $TESTNVIM_LOG_PROFILE\n"
 
 }
 
@@ -241,11 +244,23 @@ function clone_plugins() {
         "$TESTNVIM_PLENARY_DIR"
         "$TESTNVIM_STRUCTLOG_DIR"
     )
-    # clone the plugins when they don't exist yet
+    counter=0
+    for i in "${!plugins[@]}"; do
+        if [ ! -d "${plugin_dirs[$i]}" ]; then
+            counter=$((counter+1))
+        fi
+    done
+
+    if [ "$counter" -eq 0 ]; then
+        return
+    fi
+
+    info_msg "Cloning plugins..."
+
     mkdir -p "${TESTNVIM_PACK_DIR}"
     for i in "${!plugins[@]}"; do
         if [ ! -d "${plugin_dirs[$i]}" ]; then
-            info_msg "[INFO]: Cloning plugin: ${plugins[$i]} into: ${plugin_dirs[$i]}"
+            compact_info_msg "[INFO]: Cloning plugin: ${plugins[$i]} into: ${plugin_dirs[$i]}"
             output=$(git clone "${plugins[$i]}" "${plugin_dirs[$i]}" 2>&1)
 
             if [ ! "$output" ]; then
@@ -255,15 +270,16 @@ function clone_plugins() {
             fi
         fi
     done
+    compact_success_msg "Plugins cloned successfully."
 }
 
 function create_user_config() {
     if [ ! -d "$TESTNVIM_CONFIG_PROFILE" ]; then
         mkdir -p "$TESTNVIM_CONFIG_PROFILE"
         cp -r "$TESTNVIM_STATE_DIR/utils/conf"/* "$TESTNVIM_CONFIG_PROFILE"
-        info_msg "[INFO]: Created config profile: $TESTNVIM_CONFIG_PROFILE"
+        info_msg "Created config profile: $TESTNVIM_CONFIG_PROFILE"
     else
-        info_msg "[INFO]: Using existing config profile: $TESTNVIM_CONFIG_PROFILE"
+        info_msg "Using existing config profile: $TESTNVIM_CONFIG_PROFILE"
     fi
 }
 
@@ -298,9 +314,10 @@ function setup() {
     print_tvim_config
 
     if [ -n "$PARAMS" ]; then
-        info_msg "[INFO]: Neovim parameters: $PARAMS"
+        info_msg "Neovim parameters: $PARAMS"
     fi
 
+    sleep 1
 
     if [ "$testing" = true ]; then
         if [ -n "$test_arg" ]; then
