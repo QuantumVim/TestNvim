@@ -25,3 +25,6 @@ run-persist:
 
 test:
 	bash ./utils/ci/run_test.sh "$(TEST)"
+
+test-noappname:
+	bash ./utils/ci/run_test.sh --disable-appname "$(TEST)"

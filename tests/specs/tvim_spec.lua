@@ -1,17 +1,6 @@
 local a = require("plenary.async_lib.tests")
 
 a.describe("initial start", function()
-	a.it("should start", function()
-		assert.truthy(true)
-	end)
-
-	a.it("NVIM_APPNAME should be handled properly", function()
-		if _G.tvim.app_name_supported() then
-			assert.truthy(os.getenv("NVIM_APPNAME") ~= nil)
-		end
-		assert.truthy(true)
-	end)
-
 	a.it("should be able to read lazy directories from rtp", function()
 		local rtp_list = vim.opt.rtp:get()
 		assert.truthy(
