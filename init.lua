@@ -1,5 +1,9 @@
 _G.tvim = {
-	env_prefix = "TESTNVIM_",
+	env = {
+		tvim_prefix = "TESTNVIM_",
+		tvim_suffix = "_DIR",
+		user_suffix = "_PROFILE",
+	},
 	app_name_supported = function()
 		return vim.fn.has("nvim-0.9") == 1
 	end,
@@ -17,27 +21,57 @@ end
 ---@param what string
 ---@return string|nil
 vim.fn.stdpath = function(what)
-	local env_name = _G.tvim.env_prefix .. what:upper() .. "_DIR"
-	local env_value = os.getenv(env_name)
-	if env_value == nil then
+	local get_env_var = os.getenv
+	local env_name = _G.tvim.env.tvim_prefix
+		.. what:upper()
+		.. _G.tvim.env.tvim_suffix
+	local user_env_name = _G.tvim.env.tvim_prefix
+		.. what:upper()
+		.. _G.tvim.env.user_suffix
+
+	if what == "config" then
+		return get_env_var(user_env_name)
+	end
+
+	if what == "data" then
+		return get_env_var(user_env_name)
+	end
+
+	if what == "cache" then
+		return get_env_var(user_env_name)
+	end
+
+	if what == "log" then
+		return get_env_var(user_env_name)
+	end
+
+	if what == "state" then
+		return get_env_var(env_name)
+	end
+
+	local other = get_env_var(env_name)
+
+	if not other then
 		---@diagnostic disable-next-line: param-type-mismatch
 		return vim.call("stdpath", what)
+	else
+		return other
 	end
-	return env_value
 end
 
 vim.opt.rtp:append(vim.fn.stdpath("plenary"))
 vim.opt.rtp:append(vim.fn.stdpath("structlog"))
 
--- tvim runtime path
+-- tvim runtime path needs to be available from the start
 vim.opt.rtp:prepend(vim.fn.stdpath("state"))
+
 local bootstrap = require("tvim.bootstrap")
 bootstrap.init()
-bootstrap.bootstrap()
 
+-- runtime path modifications after lazy is done to avoid resetting necessary paths
+vim.opt.rtp = bootstrap.bootstrap()
 vim.opt.termguicolors = true
 
-vim.cmd([[colorscheme tokyonight]])
 bootstrap.load_structlog()
 bootstrap.load_user_conf()
 

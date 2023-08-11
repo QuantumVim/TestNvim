@@ -206,7 +206,12 @@ function freeze_config() {
             exit 1
         else
             for dir in "${existing_dirs[@]}"; do
-                __backup_dir "$dir" "$dir/after/pack/lazy/opt/*"
+                echo "Removing $dir"
+                # remove existing plugins
+                if [ -d "$dir/after" ]; then
+                    rm -rf "$dir/after"
+                fi
+                __backup_dir "$dir"
             done
         fi
     fi

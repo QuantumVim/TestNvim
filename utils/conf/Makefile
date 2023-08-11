@@ -1,10 +1,10 @@
 SHELL := /usr/bin/env bash
 
 run:
-	bash ./scripts/tvim
+	bash tvim
 
 run-persist:
-	bash ./scripts/tvim --persist
+	bash tvim --persist 
 
 test:
-	bash ./scripts/tvim --testing
+	bash tvim --testing

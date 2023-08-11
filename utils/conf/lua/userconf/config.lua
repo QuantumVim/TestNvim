@@ -10,6 +10,13 @@ local M = {
 			path = nil,
 		},
 	},
+	colorscheme = "tokyonight",
+	commands = {
+		-- name = "MyCoolCommand",
+		-- fn = function ()
+		--
+		-- end
+	},
 }
 
 return M

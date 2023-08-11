@@ -9,7 +9,6 @@ source "$current_script_dir/messages"
 
 function __backup_dir() {
     local src="$1"
-    local exclude_dir="${2:-}"
 
     if [ ! -d "$src" ]; then
         return
@@ -19,27 +18,14 @@ function __backup_dir() {
     msg "Backing up old $src to $src.old"
 
     if command -v rsync &>/dev/null; then
-        if [ -n "$exclude_dir" ]; then
-            rsync --archive --quiet --backup --partial --copy-links --cvs-exclude --exclude="$exclude_dir" "$src"/ "$src.old"
-        else
-            rsync --archive --quiet --backup --partial --copy-links --cvs-exclude "$src"/ "$src.old"
-        fi
+        rsync --archive --quiet --backup --partial --copy-links --cvs-exclude "$src"/ "$src.old"
     else
         case "$OS" in
             Darwin)
-                if [ -n "$exclude_dir" ]; then
-                    tar -cf - -C "$src" --exclude "$(basename "$exclude_dir")/*" . | tar -xf - -C "$src.old"
-                else
-                    cp -R "$src/." "$src.old/."
-                fi
+                cp -R "$src/." "$src.old/."
                 ;;
             *)
-                if [ -n "$exclude_dir" ]; then
-                    tar -cf - -C "$src" --exclude "$(basename "$exclude_dir")/*" . | tar -xf - -C "$src.old"
-                    printf "\n"
-                else
-                    cp -r "$src/." "$src.old/."
-                fi
+                cp -r "$src/." "$src.old/."
                 ;;
         esac
     fi

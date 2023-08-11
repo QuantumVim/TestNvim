@@ -67,28 +67,63 @@ function M.init()
 	})
 end
 
----Bootstrap tvim with rtp modifications
-function M.bootstrap()
-	-- these have to be added after lazy setup
-	vim.opt.rtp:prepend(
-		join_paths(
-			os.getenv(_G.tvim.env_prefix .. "STATE_DIR"),
-			"site",
-			"after"
-		)
-	)
-	vim.opt.rtp:prepend(
-		join_paths(os.getenv(_G.tvim.env_prefix .. "STATE_DIR"), "site")
-	)
-	vim.opt.rtp:prepend(
-		join_paths(os.getenv(_G.tvim.env_prefix .. "STATE_DIR"), "after")
-	)
+--Modifies the runtimepath by removing standard paths from `vim.call("stdpath", what)` with `vim.fn.stdpath(what)`
+---@param stds string[]|nil @default: { "config", "data" }
+---@param expands string[][]|nil @default: { {}, { "site", "after" }, { "site" }, { "after" } }
+---@return vim.opt.runtimepath
+function M.bootstrap(stds, expands)
+	stds = stds or { "config", "data" }
+	expands = expands or { {}, { "site", "after" }, { "site" }, { "after" } }
+	---@type vim.opt.runtimepath
+	local rtp_paths = vim.opt.rtp:get()
+	local rtp = vim.opt.rtp
 
-	-- any calls that require state in rtp follow here
-	local util = require("tvim.util")
-	if not _G.tvim.app_name_supported() then
-		vim.opt.rtp = util.modify_runtime_path()
+	for _, what in ipairs(stds) do
+		for _, expand in ipairs(expands) do
+			if #expand == 0 then
+				---@diagnostic disable-next-line: param-type-mismatch
+				if vim.tbl_contains(rtp_paths, vim.call("stdpath", what)) then
+					-- remove
+					---@diagnostic disable-next-line: param-type-mismatch
+					rtp:remove(vim.call("stdpath", what))
+				end
+				if not vim.tbl_contains(rtp_paths, vim.fn.stdpath(what)) then
+					-- add
+					rtp:prepend(vim.fn.stdpath(what))
+				end
+			else
+				if
+					-- remove
+					vim.tbl_contains(
+						rtp_paths,
+						_G.join_paths(
+							---@diagnostic disable-next-line: param-type-mismatch
+							vim.call("stdpath", what),
+							unpack(expand)
+						)
+					)
+				then
+					rtp:remove(_G.join_paths(
+						---@diagnostic disable-next-line: param-type-mismatch
+						vim.call("stdpath", what),
+						unpack(expand)
+					))
+				end
+				if
+					not vim.tbl_contains(
+						rtp_paths,
+						_G.join_paths(vim.fn.stdpath(what), unpack(expand))
+					)
+				then
+					-- add
+					rtp:prepend(
+						_G.join_paths(vim.fn.stdpath(what), unpack(expand))
+					)
+				end
+			end
+		end
 	end
+	return rtp
 end
 
 ---Load structlog
@@ -155,19 +190,27 @@ end
 
 ---Load and execute user config
 function M.load_user_conf()
-	local config_path = vim.fn.stdpath("config")
-
-	---@return string|nil config_path
-	function _G.user_conf()
-		return config_path
-	end
-
-	vim.opt.rtp:prepend(config_path)
-
 	local tvim_util = require("tvim.util")
 
+	local user_config = require("userconf.config")
 	-- load user config
 	tvim_util.add_plugin_paths_to_rtp()
+
+	if user_config then
+		if user_config.colorscheme then
+			vim.cmd("colorscheme " .. user_config.colorscheme)
+		else
+			vim.cmd("colorscheme " .. "tokyonight")
+		end
+		if user_config.commands then
+			local common_opts = { force = true }
+			for _, cmd in pairs(user_config.commands) do
+				local opts =
+					vim.tbl_deep_extend("force", common_opts, cmd.opts or {})
+				vim.api.nvim_create_user_command(cmd.name, cmd.fn, opts)
+			end
+		end
+	end
 
 	-- execute any logic in user config
 	require("userconf")
