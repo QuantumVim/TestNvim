@@ -29,7 +29,8 @@ function M.init()
 		"folke/tokyonight.nvim",
 		"folke/which-key.nvim",
 	}
-	require("lazy").setup(plugins, {
+
+	local opts = {
 		install = {
 			missing = true,
 		},
@@ -64,7 +65,12 @@ function M.init()
 			-- only generate markdown helptags for plugins that dont have docs
 			skip_if_doc_exists = true,
 		},
-	})
+	}
+
+	require("lazy").setup(
+		vim.tbl_deep_extend("force", plugins, _G.tvim.user_config.lazy.specs),
+		vim.tbl_deep_extend("force", opts, _G.tvim.user_config.lazy.opts)
+	)
 end
 
 --Modifies the runtimepath by removing standard paths from `vim.call("stdpath", what)` with `vim.fn.stdpath(what)`
@@ -85,6 +91,7 @@ function M.bootstrap(stds, expands)
 				if vim.tbl_contains(rtp_paths, vim.call("stdpath", what)) then
 					-- remove
 					---@diagnostic disable-next-line: param-type-mismatch
+					print(vim.call("stdpath", what))
 					rtp:remove(vim.call("stdpath", what))
 				end
 				if not vim.tbl_contains(rtp_paths, vim.fn.stdpath(what)) then
@@ -190,6 +197,13 @@ end
 
 ---Load and execute user config
 function M.load_user_conf()
+	local user_config = require("userconf.config")
+
+	print(vim.inspect(user_config))
+	_G.tvim.user_config = user_config
+end
+
+function M.process_user_config()
 	local tvim_util = require("tvim.util")
 
 	local user_config = require("userconf.config")

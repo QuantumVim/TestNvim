@@ -1,4 +1,12 @@
+---@class tvim
+---@field env tvim.env
+---@field app_name_supported fun():boolean
+---@field user_config user_config
 _G.tvim = {
+	---@class tvim.env
+	---@field tvim_prefix string
+	---@field tvim_suffix string
+	---@field user_suffix string
 	env = {
 		tvim_prefix = "TESTNVIM_",
 		tvim_suffix = "_DIR",
@@ -7,7 +15,6 @@ _G.tvim = {
 	app_name_supported = function()
 		return vim.fn.has("nvim-0.9") == 1
 	end,
-	user_config = {},
 }
 
 local uv = vim.loop
@@ -66,14 +73,16 @@ vim.opt.rtp:append(vim.fn.stdpath("structlog"))
 vim.opt.rtp:prepend(vim.fn.stdpath("state"))
 
 local bootstrap = require("tvim.bootstrap")
+-- runtime path modifications after lazy is done to avoid resetting necessary
+vim.opt.rtp = bootstrap.bootstrap()
+
+bootstrap.load_user_conf()
 bootstrap.init()
 
--- runtime path modifications after lazy is done to avoid resetting necessary paths
-vim.opt.rtp = bootstrap.bootstrap()
-vim.opt.termguicolors = true
+bootstrap.process_user_config()
 
+vim.opt.termguicolors = true
 bootstrap.load_structlog()
-bootstrap.load_user_conf()
 
 local logger = require("structlog").get_logger("tvim")
 logger:info("Tvim initialized")
