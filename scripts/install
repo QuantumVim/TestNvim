@@ -16,21 +16,19 @@ declare -a URLS=(
 )
 
 export TESTNVIM_USER_PROFILE=${TESTNVIM_USER_PROFILE:-"$profile"}
-function source_scripts() {
-    for VARS_URL in "${URLS[@]}"; do
-        temp_file=$(mktemp)
+for VARS_URL in "${URLS[@]}"; do
+    temp_file=$(mktemp)
 
-        if curl -LSsO "$VARS_URL"; then
-            # shellcheck disable=SC1090
-            source "$temp_file"
-        else
-            echo "Error: Failed to download from $VARS_URL"
-            rm -f "$temp_file"
-            exit 1
-        fi
+    if curl -LSsO "$VARS_URL"; then
+        # shellcheck disable=SC1090
+        source "$temp_file"
+    else
+        echo "Error: Failed to download from $VARS_URL"
         rm -f "$temp_file"
-    done
-}
+        exit 1
+    fi
+    rm -f "$temp_file"
+done
 
 function print_logo() {
     cat <<'EOF'
@@ -137,7 +135,6 @@ function setup_tvim() {
 
 function main() {
 
-    source_scripts
     parse_arguments "$@"
     print_logo
     clone_tvim
