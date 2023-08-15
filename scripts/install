@@ -16,19 +16,24 @@ declare -a URLS=(
 )
 
 export TESTNVIM_USER_PROFILE=${TESTNVIM_USER_PROFILE:-"$profile"}
-for VARS_URL in "${URLS[@]}"; do
-    temp_file=$(mktemp)
+function source_scripts() {
+    local tmp_dir
+    tmp_dir=$(mktemp -d)
+    cd "$tmp_dir" || exit 1
+    for VARS_URL in "${URLS[@]}"; do
+        temp_file=$(mktemp)
 
-    if curl -s "$VARS_URL" -o "$temp_file"; then
-        # shellcheck disable=SC1090
-        source "$temp_file"
-    else
-        echo "Error: Failed to download from $VARS_URL"
+        if curl -LSsO "$VARS_URL"; then
+            # shellcheck disable=SC1090
+            source "$temp_file"
+        else
+            echo "Error: Failed to download from $VARS_URL"
+            rm -f "$temp_file"
+            exit 1
+        fi
         rm -f "$temp_file"
-        exit 1
-    fi
-    rm -f "$temp_file"
-done
+    done
+}
 
 function print_logo() {
     cat <<'EOF'
