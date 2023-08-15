@@ -25,6 +25,11 @@
 TestNvim is a minimal neovim configuration for plugin testing. It behaves like
 any other neovim instance without causing conflicts with other neovim configurations.
 
+## Disclaimer
+
+TestNvim is in early development. Although it seems to work pretty well there might be issues.
+In depth documentation follows soon.
+
 ## Features
 
 - no conflicts with existing neovim configuration
