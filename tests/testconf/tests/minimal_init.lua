@@ -1,6 +1,14 @@
--- environment has to be initialized first
 require("tvim_env")
+-- tvim runtime path needs to be available from the start
 vim.opt.rtp:prepend(vim.fn.stdpath("state"))
+
+local uv = vim.loop
+local path_sep = uv.os_uname().version:match("Windows") and "\\" or "/"
+
+local base_dir = vim.fn.stdpath("config")
+local tests_dir = base_dir .. path_sep .. "tests"
+
+vim.opt.rtp:append(tests_dir)
 
 vim.opt.rtp:append(vim.fn.stdpath("plenary"))
 vim.opt.rtp:append(vim.fn.stdpath("structlog"))
@@ -17,5 +25,6 @@ bootstrap.process_user_config()
 vim.opt.termguicolors = true
 bootstrap.load_structlog()
 
-local logger = require("structlog").get_logger("tvim")
-logger:info("Tvim initialized")
+-- NOTE: careful about name collisions
+-- see https://github.com/nvim-lualine/lualine.nvim/pull/621
+require("tests.util.helpers")

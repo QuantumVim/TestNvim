@@ -1,0 +1,69 @@
+name: install
+
+on:
+  pull_request:
+    branches:
+      - "main"
+    paths:
+      - ".github/workflows/**"
+      - "lua/**"
+      - "snapshots/**"
+      - "utils/**"
+
+jobs:
+  unixish:
+    name: ${{ matrix.os }} ${{ matrix.runner }} (${{ matrix.neovim }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-latest
+            os: osx
+            neovim: v0.8.0
+          - runner: ubuntu-latest
+            os: osx
+            neovim: v0.8.0
+          - runner: ubuntu-latest
+            os: linux
+            neovim: v0.9.0
+          - runner: macos-latest
+            os: osx
+            neovim: v0.9.0
+          - runner: ubuntu-22.04
+            os: linux
+            neovim: nightly
+          - runner: macos-12
+            os: osx
+            neovim: nightly
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install neovim binary from release
+        env:
+          RELEASE_VER: ${{ matrix.neovim }}
+        run: |
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          bash ./utils/ci/install-neovim-from-release.sh
+
+      - name: Install TestNvim
+        timeout-minutes: 4
+        env:
+          TESTNVIM_BRANCH: ${{ github.head_ref || github.ref_name }}
+          TESTNVIM_REMOTE: ${{ github.event.pull_request.head.repo.full_name || github.repository }}
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+
+          installer_url="https://raw.githubusercontent.com/${TESTNVIM_REMOTE}/${TESTNVIM_BRANCH}/scripts/install"
+          curl -LSsO "$installer_url"
+          bash ./install
+
+      - name: Test TestNvim startup
+        run: |
+          tvim -c 'q'
+      - name: Run unit-tests
+        # NOTE: make sure to adjust the timeout if you start adding a lot of tests
+        timeout-minutes: 4
+        run: |
+          nvim --version
+          make test
