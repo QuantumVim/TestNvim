@@ -59,7 +59,7 @@ jobs:
 
           installer_url="https://raw.githubusercontent.com/${TESTNVIM_REMOTE}/${TESTNVIM_BRANCH}/scripts/install"
           curl -LSsO "$installer_url"
-          bash ./install.sh
+          bash ./install
 
       - name: Test TestNvim startup
         run: |
