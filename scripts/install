@@ -125,9 +125,9 @@ function setup_tvim() {
 
     info_msg "Installing TestNvim"
     compact_info_msg "Preparing Lazy setup"
-    chmod +x "$TESTNVIM_RTP_DIR/scripts/tvim"
+    chmod +x "$TESTNVIM_STATE_DIR/scripts/tvim"
     if [ -d "$HOME/.local/bin" ]; then
-        ln -s "$TESTNVIM_RTP_DIR/scripts/tvim" "$HOME/.local/bin/tvim"
+        ln -s "$TESTNVIM_STATE_DIR/scripts/tvim" "$HOME/.local/bin/tvim"
         tvim --headless -c 'quitall'
     else
         compact_warn_msg "Manually link the script '${TESTNVIM_STATE_DIR}/scripts/tvim' to your path"
