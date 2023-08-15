@@ -23,6 +23,7 @@ for VARS_URL in "${URLS[@]}"; do
     file_name=$(basename "$VARS_URL")
     temp_file="$temp_dir/$file_name"
     if curl -LSs -o "$temp_file" "$VARS_URL"; then
+        sleep 3
         # shellcheck disable=SC1090
         source "$temp_file"
     else
