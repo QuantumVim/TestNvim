@@ -137,12 +137,22 @@ function setup_tvim() {
 }
 
 function main() {
+    info_msg "TestNvim configuration:"
+    compact_info_msg "  Profile: ${TESTNVIM_USER_PROFILE}"
+    compact_info_msg "  Cache dir: $TESTNVIM_CACHE_PROFILE"
+    compact_info_msg "  State dir: $TESTNVIM_STATE_DIR"
+    compact_info_msg "  Data dir: $TESTNVIM_DATA_PROFILE"
+    compact_info_msg "  Config dir: $TESTNVIM_CONFIG_PROFILE"
+    compact_info_msg "  Log dir: $TESTNVIM_LOG_PROFILE\n"
+
 
     parse_arguments "$@"
     print_logo
     clone_tvim
     generate_user_config
     setup_tvim
+
+
     compact_info_msg "Thank you for installing TestNvim!!"
     rm -rf "$temp_dir"
 }
