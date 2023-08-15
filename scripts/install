@@ -17,7 +17,16 @@ declare -a URLS=(
 
 export TESTNVIM_USER_PROFILE=${TESTNVIM_USER_PROFILE:-"$profile"}
 
-temp_dir=$(mktemp -d)
+OS=$(uname -s)
+
+# Create a temporary directory based on the operating system
+if [ "$OS" == "Darwin" ]; then
+    # macOS
+    temp_dir=$(mktemp -d -t tmpdir)
+else
+    # Assume Linux
+    temp_dir=$(mktemp -d)
+fi
 
 for VARS_URL in "${URLS[@]}"; do
     file_name=$(basename "$VARS_URL")
