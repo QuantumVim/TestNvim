@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
+OS=$(uname -s)
+
 current_script_path=$(readlink -f "${BASH_SOURCE[0]}")
 current_script_dir=$(dirname "$current_script_path")
 
@@ -113,7 +115,14 @@ export TESTNVIM_APPNAME=${TESTNVIM_APPNAME:-"tvim"}
 export NVIM_APPNAME="$TESTNVIM_APPNAME"
 
 function tvim_tmp(){
-    mktemp -d --suffix="-${TESTNVIM_APPNAME}-$profile-$1"
+
+    if [[ "$OS" == "darwin"* ]]; then
+        # macOS
+        mktemp -d -t "${TESTNVIM_APPNAME}-${profile}-$1-XXXX"
+    else
+        # Linux and other UNIX-like systems
+        mktemp -d --suffix="-${TESTNVIM_APPNAME}-${profile}-$1"
+    fi
 }
 
 if [ "$persisting" = false ]; then
