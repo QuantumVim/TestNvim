@@ -6,7 +6,7 @@
 	<a href="https://github.com/quantumfate/TestNvim/stargazers">
 		<img alt="Stargazers" src="https://img.shields.io/github/stars/quantumfate/TestNvim?style=for-the-badge&logo=starship&color=C9CBFF&logoColor=D9E0EE&labelColor=302D41">
     </a>
-	<a href="https://github.com/quantumfate/TestNvim/releases/latest">
+	<a href="https://github.com/quantumfate/TestNvim/releases/tag/v0.0.1">
 		<img alt="Releases" src="https://img.shields.io/github/v/release/quantumfate/TestNvim.svg?style=for-the-badge&logo=github&color=F2CDCD&logoColor=D9E0EE&labelColor=302D41"/>
     </a>
 	<a href="https://github.com/quantumfate/TestNvim/issues">
