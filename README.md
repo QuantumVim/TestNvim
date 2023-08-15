@@ -1,5 +1,7 @@
 # TestVim
 
+![Build Status](https://github.com/quantumfate/TestNvim/actions/workflows/install.yaml/badge.svg)
+
 TestVim is a minimal neovim configuration for plugin testing. It behaves like any other neovim instance by utilizing the [NVIM_APPNAME](https://neovim.io/doc/user/starting.html#%24NVIM_APPNAME) feature that was added in [NVIM 0.9.0](https://github.com/neovim/neovim/releases/tag/v0.9.0).
 
 ## Features
@@ -13,7 +15,7 @@ TestVim is a minimal neovim configuration for plugin testing. It behaves like an
 ## Requirements
 
 - any UNIX like operating system
-- [NVIM 0.9.0](https://github.com/neovim/neovim/releases/tag/v0.9.0) *See [I don't have NVIM v.0.9](#i-dont-have-nvim-v09) for earlier versions*
+- [NVIM 0.9.0](https://github.com/neovim/neovim/releases/tag/v0.9.0) _See [I don't have NVIM v.0.9](#i-dont-have-nvim-v09) for earlier versions_
 
 ## Install
 
@@ -88,7 +90,7 @@ You can use [Structlog](https://github.com/Tastyep/structlog.nvim) calls if the 
 ### Method 1: Symlink your plugin into TestVim (Recommended)
 
 ```bash
-ln -s /my/cool/plugin $HOME/.config/<appname>/after 
+ln -s /my/cool/plugin $HOME/.config/<appname>/after
 ```
 
 ### Method 2: Develop your plugin in a runtime path (Not recommended)
@@ -111,6 +113,6 @@ logger:trace("Who calls this function)
 
 ## Special Thanks
 
-- [Lazy](https://github.com/folke/lazy.nvim) *For the minimal init.lua*
-- [Plenary](https://github.com/nvim-lua/plenary.nvim) *For lua functions I don't want to write twice*
-- [Structlog](https://github.com/Tastyep/structlog.nvim) *For less painful logging*
+- [Lazy](https://github.com/folke/lazy.nvim) _For the minimal init.lua_
+- [Plenary](https://github.com/nvim-lua/plenary.nvim) _For lua functions I don't want to write twice_
+- [Structlog](https://github.com/Tastyep/structlog.nvim) _For less painful logging_
