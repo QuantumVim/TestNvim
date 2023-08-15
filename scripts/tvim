@@ -116,7 +116,7 @@ export NVIM_APPNAME="$TESTNVIM_APPNAME"
 
 function tvim_tmp(){
 
-    if [[ "$OS" == "darwin"* ]]; then
+    if [[ "$OS" == "Darwin" ]]; then
         # macOS
         mktemp -d -t "${TESTNVIM_APPNAME}-${profile}-$1-XXXX"
     else
