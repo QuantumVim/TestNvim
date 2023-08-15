@@ -27,7 +27,6 @@ function M.init()
 	local plugins = {
 		-- do not remove the colorscheme!
 		"folke/tokyonight.nvim",
-		"folke/which-key.nvim",
 	}
 
 	local opts = {
@@ -91,7 +90,6 @@ function M.bootstrap(stds, expands)
 				if vim.tbl_contains(rtp_paths, vim.call("stdpath", what)) then
 					-- remove
 					---@diagnostic disable-next-line: param-type-mismatch
-					print(vim.call("stdpath", what))
 					rtp:remove(vim.call("stdpath", what))
 				end
 				if not vim.tbl_contains(rtp_paths, vim.fn.stdpath(what)) then
@@ -198,8 +196,6 @@ end
 ---Load and execute user config
 function M.load_user_conf()
 	local user_config = require("userconf.config")
-
-	print(vim.inspect(user_config))
 	_G.tvim.user_config = user_config
 end
 
@@ -211,10 +207,12 @@ function M.process_user_config()
 	tvim_util.add_plugin_paths_to_rtp()
 
 	if user_config then
-		if user_config.colorscheme then
-			vim.cmd("colorscheme " .. user_config.colorscheme)
-		else
-			vim.cmd("colorscheme " .. "tokyonight")
+		if #vim.api.nvim_list_uis() ~= 0 then
+			if user_config.colorscheme then
+				vim.cmd("colorscheme " .. user_config.colorscheme)
+			else
+				vim.cmd("colorscheme " .. "tokyonight")
+			end
 		end
 		if user_config.commands then
 			local common_opts = { force = true }

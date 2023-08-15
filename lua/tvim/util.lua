@@ -16,12 +16,12 @@ function M.add_plugin_paths_to_rtp()
 				return
 			end
 			if path.prepend then
-				vim.opt.runtimepath:prepend(path.path)
+				vim.opt.rtp:prepend(path.path)
 			else
-				vim.opt.runtimepath:append(path.path)
+				vim.opt.rtp:append(path.path)
 			end
 		elseif type(path) == "string" then
-			vim.opt.runtimepath:append(path)
+			vim.opt.rtp:append(path)
 		else
 			error("invalid plugin path: " .. type(path))
 		end

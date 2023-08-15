@@ -50,7 +50,7 @@ export TESTNVIM_CONFIG_PROFILE=${tmp_config}
 export TESTNVIM_DATA_PROFILE=${tmp_data}
 export TESTNVIM_CACHE_PROFILE=${tmp_cache}
 
-cp -r "${TESTNVIM_STATE_DIR}/utils/conf"/* "${TESTNVIM_CONFIG_PROFILE}"
+cp -r "${TESTNVIM_STATE_DIR}/tests/testconf"/* "${TESTNVIM_CONFIG_PROFILE}"
 
 TESTNVIM_PACK_DIR="${TESTNVIM_DATA_PROFILE}/after/pack/lazy/opt"
 TESTNVIM_PLENARY_DIR="${TESTNVIM_PACK_DIR}/plenary"
