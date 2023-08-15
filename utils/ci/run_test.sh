@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -eo pipefail
 
+OS=$(uname -s)
 export TESTNVIM_APPNAME=${TESTNVIM_APPNAME:-"tvim"}
 
 profile=${TESTNVIM_USER_PROFILE:-"default"}
@@ -37,7 +38,13 @@ fi
 source "./scripts/vars"
 source "./scripts/messages"
 function tvim_tmp(){
-    mktemp -d --suffix="-${TESTNVIM_APPNAME}-$profile-$1"
+    if [[ "$OS" == "Darwin" ]]; then
+        # macOS
+        mktemp -d -t "${TESTNVIM_APPNAME}-${profile}-$1-XXXX"
+    else
+        # Linux and other UNIX-like systems
+        mktemp -d --suffix="-${TESTNVIM_APPNAME}-${profile}-$1"
+    fi
 }
 
 tmp_log="$(tvim_tmp "log")"
