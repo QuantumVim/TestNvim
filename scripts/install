@@ -16,18 +16,20 @@ declare -a URLS=(
 )
 
 export TESTNVIM_USER_PROFILE=${TESTNVIM_USER_PROFILE:-"$profile"}
-for VARS_URL in "${URLS[@]}"; do
-    temp_file=$(mktemp)
 
-    if curl -LSsO "$VARS_URL"; then
+temp_dir=$(mktemp -d)
+
+for VARS_URL in "${URLS[@]}"; do
+    file_name=$(basename "$VARS_URL")
+    temp_file="$temp_dir/$file_name"
+    if curl -LSs -o "$temp_file" "$VARS_URL"; then
         # shellcheck disable=SC1090
         source "$temp_file"
     else
         echo "Error: Failed to download from $VARS_URL"
-        rm -f "$temp_file"
+        rm -rf "$temp_dir"
         exit 1
     fi
-    rm -f "$temp_file"
 done
 
 function print_logo() {
@@ -141,6 +143,7 @@ function main() {
     generate_user_config
     setup_tvim
     compact_info_msg "Thank you for installing TestNvim!!"
+    rm -rf "$temp_dir"
 }
 
 main "$@"
