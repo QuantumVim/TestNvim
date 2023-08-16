@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+profile="default"
+
+declare -x TESTNVIM_BRANCH="${TESTNVIM_BRANCH:-"main"}"
+declare -xr TESTNVIM_REMOTE="${TESTNVIM_REMOTE:-quantumfate/TestNvim.git}"
+export TESTNVIM_APPNAME=${TESTNVIM_APPNAME:-"tvim"}
+export NVIM_APPNAME="$TESTNVIM_APPNAME"
+
+declare -a URLS=(
+    "https://raw.githubusercontent.com/quantumfate/TestNvim/${TESTNVIM_BRANCH}/scripts/vars"
+    "https://raw.githubusercontent.com/quantumfate/TestNvim/${TESTNVIM_BRANCH}/scripts/messages"
+    "https://raw.githubusercontent.com/quantumfate/TestNvim/${TESTNVIM_BRANCH}/scripts/functions"
+)
+
+export TESTNVIM_USER_PROFILE=${TESTNVIM_USER_PROFILE:-"$profile"}
+
+OS=$(uname -s)
+
+echo "Preparing to uninstall TestNvim..."
+# Create a temporary directory based on the operating system
+if [ "$OS" == "Darwin" ]; then
+    # macOS
+    temp_dir=$(mktemp -d -t tmpdir)
+else
+    # Assume Linux
+    temp_dir=$(mktemp -d)
+fi
+
+for VARS_URL in "${URLS[@]}"; do
+    file_name=$(basename "$VARS_URL")
+    temp_file="$temp_dir/$file_name"
+    if curl -LSs -o "$temp_file" "$VARS_URL"; then
+        sleep 3
+        # shellcheck disable=SC1090
+        source "$temp_file"
+    else
+        echo "Error: Failed to download from $VARS_URL"
+        rm -rf "$temp_dir"
+        exit 1
+    fi
+done
+
+function usage() {
+    echo "Usage: $0 [<options>]"
+    echo ""
+    echo "Options:"
+    echo "    -h, --help                       Print this help message"
+    echo "    --remove-backups                 Remove old backup folders as well"
+}
+
+ARGS_REMOVE_BACKUPS=0
+
+declare -a __tvim_dirs=(
+    "$TESTNVIM_LOG_DIR"
+    "$TESTNVIM_CACHE_DIR"
+    "$TESTNVIM_CONFIG_DIR"
+    "$TESTNVIM_DATA_DIR"
+    "$TESTNVIM_STATE_DIR"
+)
+
+function parse_arguments() {
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            --remove-backups)
+                ARGS_REMOVE_BACKUPS=1
+                ;;
+            -h | --help)
+                usage
+                exit 0
+                ;;
+        esac
+        shift
+    done
+}
+
+function remove_tvim_dirs() {
+    info_msg "Removing TestNvim directories..."
+    for dir in "${__tvim_dirs[@]}"; do
+        if [ -d "$dir" ]; then
+            rm -rf "$dir"
+            if [ "$ARGS_REMOVE_BACKUPS" -eq 1 ]; then
+                local bak_dir="$dir.{bak,old}"
+                rm -rf "$bak_dir"
+                compact_info_msg "Removed $bak_dir"
+            fi
+            compact_info_msg "Removed $dir"
+        fi
+    done
+}
+
+function remove_tvim_bin() {
+    info_msg "Removing TestNvim binary..."
+    if [ -f "$HOME/.local/bin/tvim" ]; then
+        rm -f "$HOME/.local/bin/tvim"
+        compact_info_msg "Removed $TESTNVIM_BIN"
+    else
+        compact_info_msg "No TestNvim binary found"
+    fi
+}
+
+function main(){
+    parse_arguments "$@"
+    remove_tvim_dirs
+    remove_tvim_bin
+}
+
+main "$@"

@@ -1,4 +1,4 @@
-# TestVim
+# TestNvim
 
 <div align="center"><p>
 
@@ -52,6 +52,12 @@ point for this tool.
 
 ```bash
 bash <(curl -s https://raw.githubusercontent.com/quantumfate/TestVim/main/scripts/install)
+```
+
+## Uninstall
+
+```bash
+bash <(curl -s https://raw.githubusercontent.com/quantumfate/TestVim/main/scripts/uninstall)
 ```
 
 ## Special Thanks
