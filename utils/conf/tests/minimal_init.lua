@@ -1,6 +1,6 @@
 -- tvim runtime path needs to be available from the start
 vim.opt.rtp:prepend(os.getenv("TESTNVIM_STATE_DIR"))
-require("tvim_env")
+require("tvim.env")
 
 local uv = vim.loop
 local path_sep = uv.os_uname().version:match("Windows") and "\\" or "/"

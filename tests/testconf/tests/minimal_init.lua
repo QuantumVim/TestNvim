@@ -1,5 +1,5 @@
 vim.opt.rtp:prepend(os.getenv("TESTNVIM_STATE_DIR"))
-require("tvim_env")
+require("tvim.env")
 -- tvim runtime path needs to be available from the start
 
 local uv = vim.loop

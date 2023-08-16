@@ -1,6 +1,6 @@
 vim.opt.rtp:prepend(os.getenv("TESTNVIM_STATE_DIR"))
 -- environment has to be initialized first
-require("tvim_env")
+require("tvim.env")
 -- tvim runtime path needs to be available from the start
 
 vim.opt.rtp:append(vim.fn.stdpath("plenary"))
