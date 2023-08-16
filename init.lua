@@ -1,6 +1,6 @@
 -- environment has to be initialized first
-require("tvim_env")
 vim.opt.rtp:prepend(vim.fn.stdpath("state"))
+require("tvim_env")
 
 vim.opt.rtp:append(vim.fn.stdpath("plenary"))
 vim.opt.rtp:append(vim.fn.stdpath("structlog"))

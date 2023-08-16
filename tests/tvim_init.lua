@@ -1,7 +1,7 @@
 -- environment has to be initialized first
+vim.opt.rtp:prepend(vim.fn.stdpath("state"))
 require("tvim_env")
 -- tvim runtime path needs to be available from the start
-vim.opt.rtp:prepend(vim.fn.stdpath("state"))
 
 vim.opt.rtp:prepend(vim.fn.stdpath("config"))
 vim.opt.rtp:append(vim.fn.stdpath("plenary"))
