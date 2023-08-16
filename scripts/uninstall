@@ -91,12 +91,12 @@ function remove_tvim_dirs() {
 }
 
 function remove_tvim_bin() {
-    info_msg "Removing TestNvim binary..."
-    if [ -f "$HOME/.local/bin/tvim" ]; then
+    info_msg "Removing TestNvim symlink..."
+    if [ -L "$HOME/.local/bin/tvim" ]; then
         rm -f "$HOME/.local/bin/tvim"
         compact_info_msg "Removed $TESTNVIM_BIN"
     else
-        compact_info_msg "No TestNvim binary found"
+        compact_info_msg "No TestNvim symlink found"
     fi
 }
 
