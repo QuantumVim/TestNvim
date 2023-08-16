@@ -27,6 +27,7 @@ local M = {
 		opts = {},
 		specs = {
 			"folke/which-key.nvim",
+			"folke/tokyonight.nvim",
 		},
 	},
 }
